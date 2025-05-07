@@ -104,28 +104,13 @@ std::pair<bool, masm::token_t> masm::Lexer::lex_number() {
       return (is_binary()) ? std::make_pair(true, TOKEN_BINARY)
                            : std::make_pair(false, TOKEN_ERROR);
     default:
-      if (is_an_integer()) {
-        return std::make_pair(true, TOKEN_INTEGER);
-      } else if (is_float_or_double())
-        return std::make_pair(true, TOKEN_FLOAT);
-      else {
-        detailed_message(file.c_str(), line,
-                         "Unknown NUMBER TYPE: %c. Use 'x', 'o' or 'b'.",
-                         *iter);
-        return std::make_pair(false, TOKEN_ERROR);
-      }
+      detailed_message(file.c_str(), line,
+                       "Unknown NUMBER TYPE: %c. Use 'x', 'o' or 'b'.", *iter);
+      return std::make_pair(false, TOKEN_ERROR);
     }
-  } else if (is_an_integer())
-    return std::make_pair(true, TOKEN_INTEGER);
-  else if (is_float_or_double())
-    return std::make_pair(true, TOKEN_FLOAT);
+  } else if (is_float_or_double_or_integer())
+    return std::make_pair(true, dot_count > 0 ? TOKEN_FLOAT : TOKEN_INTEGER);
   return std::make_pair(false, TOKEN_ERROR);
-}
-
-bool masm::Lexer::is_an_integer() {
-  while (iter != stream.end() && *iter >= '0' && *iter <= '9')
-    iter++;
-  return true;
 }
 
 bool masm::Lexer::is_hexadecimal() {
@@ -147,8 +132,8 @@ bool masm::Lexer::is_binary() {
   return true;
 }
 
-bool masm::Lexer::is_float_or_double() {
-  size_t dot_count = 0;
+bool masm::Lexer::is_float_or_double_or_integer() {
+  dot_count = 0;
   while (iter != stream.end() &&
          ((*iter >= '0' && *iter <= '9') || *iter == '.')) {
     if (*iter == '.' && dot_count > 1) {
@@ -156,7 +141,7 @@ bool masm::Lexer::is_float_or_double() {
                        "Invalid Floating point number. More than one '%c'",
                        *iter);
       return false;
-    } else {
+    } else if (*iter == '.') {
       dot_count++;
     }
     iter++;

@@ -12,6 +12,7 @@ class Lexer {
   std::string::iterator iter;
   size_t line = 0;
   std::string file;
+  size_t dot_count = 0;
 
 public:
   Lexer(std::string path, bool *err);
@@ -23,15 +24,13 @@ public:
   /* Lexing numbers */
   std::pair<bool, token_t> lex_number();
 
-  bool is_an_integer();
-
   bool is_hexadecimal();
 
   bool is_octal();
 
   bool is_binary();
 
-  bool is_float_or_double();
+  bool is_float_or_double_or_integer();
 
   /* Lexing Strings */
   std::pair<bool, std::string> lex_string();

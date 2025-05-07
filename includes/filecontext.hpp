@@ -3,6 +3,7 @@
 
 #include <consts.hpp>
 #include <filesystem>
+#include <gpc_analyzer.hpp>
 #include <gpc_parser.hpp>
 #include <iostream>
 #include <lexer.hpp>
@@ -16,7 +17,7 @@
 
 namespace masm {
 class FileContext {
-  std::unordered_map<std::string, std::string> CONSTANTS;
+  std::unordered_map<std::string, std::pair<value_t, std::string>> CONSTANTS;
   std::unordered_set<std::string> LABELS;
   SymbolTable symtable;
 
@@ -41,7 +42,8 @@ public:
 
   bool file_already_imported(std::filesystem::path path);
 
-  std::unordered_map<std::string, std::string> get_CONSTANTS();
+  std::unordered_map<std::string, std::pair<value_t, std::string>>
+  get_CONSTANTS();
 
   std::unordered_set<std::string> get_LABELS();
 
@@ -51,7 +53,9 @@ public:
 
   std::vector<Node> get_nodes();
 
-  void set_CONSTANTS(std::unordered_map<std::string, std::string> &&constants);
+  void
+  set_CONSTANTS(std::unordered_map<std::string, std::pair<value_t, std::string>>
+                    &&constants);
 
   void set_LABELS(std::unordered_set<std::string> &&labels);
 

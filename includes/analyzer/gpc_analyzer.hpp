@@ -12,7 +12,7 @@
 namespace masm {
 class GPCAnalyzer {
   std::vector<Node> nodes;
-  std::unordered_map<std::string, std::pair<data_t, std::string>> &consts;
+  std::unordered_map<std::string, std::pair<value_t, std::string>> &consts;
   std::unordered_set<std::string> &labels;
   SymbolTable &symtable;
 
@@ -22,7 +22,7 @@ class GPCAnalyzer {
 public:
   GPCAnalyzer(
       std::vector<Node> &&n,
-      std::unordered_map<std::string, std::pair<data_t, std::string>> &c,
+      std::unordered_map<std::string, std::pair<value_t, std::string>> &c,
       std::unordered_set<std::string> &l, SymbolTable &s);
 
   bool analyze();
@@ -31,7 +31,11 @@ public:
 
   bool first_loop();
 
-  bool valid_identifier_in_var_declr(Node &n);
+  bool second_loop();
+
+  bool validate_defined_variables(Node &n);
+
+  bool validate_reserved_variables(Node &n);
 };
 }; // namespace masm
 

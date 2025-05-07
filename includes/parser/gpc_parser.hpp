@@ -21,7 +21,9 @@ public:
 
   std::vector<Node> getNodes();
 
-  data_t figure_out_type(token_t t);
+  value_t figure_out_type(token_t t);
+
+  bool handle_simple_instructions(node_t type);
 
   bool handle_include_directory(Lexer &lexer);
 
@@ -34,6 +36,19 @@ public:
   bool handle_ds(Lexer &lexer, Token name);
   bool handle_df_dlf(Lexer &lexer, Token name);
   bool handle_resX(Lexer &lexer, Token name);
+
+  bool handle_instructions_with_reg_reg_or_reg_imm(Lexer &lexer, Token inst,
+                                                   node_t t);
+
+  bool handle_instructions_with_reg(Lexer &lexer, node_t t);
+
+  bool handle_instructions_with_reg_reg(Lexer &lexer, node_t type);
+
+  bool handle_instructions_with_reg_imm(Lexer &lexer, node_t type);
+
+  bool handle_instructions_with_imm(Lexer &lexer, node_t type);
+
+  bool handle_instructions_with_imm_or_reg(Lexer &lexer, node_t type);
 };
 }; // namespace masm
 

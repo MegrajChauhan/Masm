@@ -38,7 +38,7 @@ bool masm::FileContext::file_already_imported(std::filesystem::path path) {
   return imports.find(path) != imports.end();
 }
 
-std::unordered_map<std::string, std::string>
+std::unordered_map<std::string, std::pair<masm::value_t, std::string>>
 masm::FileContext::get_CONSTANTS() {
   return std::move(CONSTANTS);
 }
@@ -60,7 +60,8 @@ std::vector<masm::Node> masm::FileContext::get_nodes() {
 }
 
 void masm::FileContext::set_CONSTANTS(
-    std::unordered_map<std::string, std::string> &&constants) {
+    std::unordered_map<std::string, std::pair<value_t, std::string>>
+        &&constants) {
   CONSTANTS = std::move(constants);
 }
 
@@ -144,6 +145,12 @@ bool masm::FileContext::file_process_GPC(std::filesystem::path working_path) {
     // check the code for syntax errors and perform other tasks.
   }
 
+  GPCAnalyzer analyzer(std::move(nodes), CONSTANTS, LABELS, symtable);
+  if (!analyzer.analyze()) {
+    simple_message("While processing %s", working_path.c_str());
+    return false;
+  }
+  symtable.list_symbols();
   return true;
 }
 
@@ -178,6 +185,6 @@ bool masm::FileContext::constant_definition(Node &node) {
   // already But we cannot check that just yet since we have yet to populate the
   // symtable. This part of processing is only to resolve include dependencies
   // and constant values
-  CONSTANTS[def->const_name] = def->const_value;
+  CONSTANTS[def->const_name] = std::make_pair(def->type, def->const_value);
   return true;
 }

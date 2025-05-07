@@ -1,17 +1,24 @@
 ; Obviously this is going to be the comment
 
-include "test2.gpc.masm" ; test2.masm must also be a GPC file
+;include "test2.gpc.masm" ; test2.masm must also be a GPC file
 
 ; The assembler will ensure that a single file isn't included more than once
 
 define VERSION 123 ; A constant is replaced anytime it is seen in the file
 
-count: db 0 ; defining a byte sized variable
+count: db -1 ; defining a byte sized variable
+hello: dq VERSION
 numbers: resb 10 ; define an array of bytes of length 10 
+; yooo: resw -10
+;jajaja: resq 992.233
 name: ds "
          John Doe!
          This is part 2\0
 	"  ; escape sequences are allowed
+
+;surname: ds 7823789
+;test: db 32
+test: dq 1244
 
 ; The assembly strictly adheres to the ISA of a core.
 ; Unlike native assemblers such as NASM where the assembler intelligently translates:
@@ -19,204 +26,206 @@ name: ds "
 ; To proper instruction, that won't be the case here.
 ; Since real machines have extremely complex ISAs, NASM can do the above but with simple ISA such as GPC, that simply isn't worth it.
 main:
+;count:
+;main:
    ; Arithmetic Instructions
    ; The available formats are:
    ; OP REG, IMM
    ; OP REG, REG
    ; OP[LENGTH] REG, MEM_ADDR 
-   
- ; add r0, 1000
- ; sub r0, 1000
- ; mul r0, 1000
- ; div r0, 1000
- ; mod r0, 1000
+ nop
+ hlt
+ add r0, 1000
+ sub r0, 1000
+ mul r0, 1000
+ div r0, 1000
+ mod r0, 1000
 
- ; add r0, r1
- ; sub r0, r1
- ; mul r0, r1
- ; div r0, r1
- ; mod r0, r1
- ; 
- ; iadd r0, 1000
- ; isub r0, 1000
- ; imul r0, 1000
- ; idiv r0, 1000
- ; imod r0, 1000
-
- ; iadd r0, r1
- ; isub r0, r1
- ; imul r0, r1
- ; idiv r0, r1
- ; imod r0, r1
- ; 
- ; fadd r0, r1
- ; fsub r0, r1
- ; fmul r0, r1
- ; fdiv r0, r1
-
- ; fadd32 r0, r1
- ; fsub32 r0, r1
- ; fmul32 r0, r1
- ; fdiv32 r0, r1
- ; 
- ; add r0, byte_type_variable
- ; add r0, word_type_variable
- ; add r0, dword_type_variable
- ; add r0, qword_type_variable
- ; 
- ; sub r0, byte_type_variable
- ; sub r0, word_type_variable
- ; sub r0, dword_type_variable
- ; sub r0, qword_type_variable
-
- ; mul r0, byte_type_variable
- ; mul r0, word_type_variable
- ; mul r0, dword_type_variable
- ; mul r0, qword_type_variable
+ add r0, r1
+ sub r0, r1
+ mul r0, r1
+ div r0, r1
+ mod r0, r1
  
- ; div r0, byte_type_variable
- ; div r0, word_type_variable
- ; div r0, dword_type_variable
- ; div r0, qword_type_variable
- ; 
- ; mod r0, byte_type_variable
- ; mod r0, word_type_variable
- ; mod r0, dword_type_variable
- ; mod r0, qword_type_variable
- ;  
- ; fadd r0, long_float_type_variable 
- ; fsub r0, long_float_type_variable
- ; fmul r0, long_float_type_variable
- ; fdiv r0, long_float_type_variable
+ iadd r0, 1000
+ isub r0, 1000
+ imul r0, 1000
+ idiv r0, 1000
+ imod r0, 1000
 
- ; fadd32 r0, float_type_variable 
- ; fsub32 r0, float_type_variable
- ; fmul32 r0, float_type_variable
- ; fdiv32 r0, float_type_variable
- ;   
- ; inc r1
- ; dec r1
+ iadd r0, r1
+ isub r0, r1
+ imul r0, r1
+ idiv r0, r1
+ imod r0, r1
+ 
+ fadd r0, r1
+ fsub r0, r1
+ fmul r0, r1
+ fdiv r0, r1
+
+ fadd32 r0, r1
+ fsub32 r0, r1
+ fmul32 r0, r1
+ fdiv32 r0, r1
+ 
+ add r0, byte_type_variable
+ add r0, word_type_variable
+ add r0, dword_type_variable
+ add r0, qword_type_variable
+ 
+ sub r0, byte_type_variable
+ sub r0, word_type_variable
+ sub r0, dword_type_variable
+ sub r0, qword_type_variable
+
+ mul r0, byte_type_variable
+ mul r0, word_type_variable
+ mul r0, dword_type_variable
+ mul r0, qword_type_variable
+ 
+ div r0, byte_type_variable
+ div r0, word_type_variable
+ div r0, dword_type_variable
+ div r0, qword_type_variable
+ 
+ mod r0, byte_type_variable
+ mod r0, word_type_variable
+ mod r0, dword_type_variable
+ mod r0, qword_type_variable
+   
+ fadd r0, long_float_type_variable 
+ fsub r0, long_float_type_variable
+ fmul r0, long_float_type_variable
+ fdiv r0, long_float_type_variable
+
+ fadd32 r0, float_type_variable 
+ fsub32 r0, float_type_variable
+ fmul32 r0, float_type_variable
+ fdiv32 r0, float_type_variable
+    
+ inc r1
+ dec r1
 
  ; ; Internal Data movement Instructions
  ; ; OP REG, IMM
  ; ; OP REG, REG
- ; mov r0, 0xaabbccddeeff0011
- ; movq r0, r1
- ; 
- ; movb r0, r1
- ; movw r0, r1
- ; movd r0, r1
- ; 
- ; movf r0, 232.2323
- ; movf32 r0, 213231.112
+ mov r0, 0xaabbccddeeff0011
+ 
+ movb r0, r1
+ movw r0, r1
+ movd r0, r1
+ movq r0, r1
+ 
+ movf r0, 232.2323
+ movf32 r0, 213231.112
 
- ; movsxb r0, 0xff 
- ; movsxw r0, 0xaa
- ; movsxd r0, 123
- ; 
- ; movsxb r0, r1 
- ; movsxw r0, r1
- ; movsxd r0, r1
+ movsxb r0, 0xff 
+ movsxw r0, 0xaa
+ movsxd r0, 123
+ 
+ movsxb r0, r1 
+ movsxw r0, r1
+ movsxd r0, r1
 
- ; excgb r0, r1
- ; excgw r0, r1
- ; excgd r0, r1
- ; excgq r0, r1
- ; 
- ; moveb r0, r1
- ; movew r0, r1
- ; moved r0, r1
- ; moveq r0, r1
+ excgb r0, r1
+ excgw r0, r1
+ excgd r0, r1
+ excgq r0, r1
+ 
+ moveb r0, r1
+ movew r0, r1
+ moved r0, r1
+ moveq r0, r1
 
- ; movnz r0, 0xaabbccddeeff0011 
- ; movz r0, 0xaabbccddeeff0011 
- ; movne r0, 0xaabbccddeeff0011 
- ; move r0, 0xaabbccddeeff0011 
- ; movnc r0, 0xaabbccddeeff0011 
- ; movc r0, 0xaabbccddeeff0011 
- ; movno r0, 0xaabbccddeeff0011 
- ; movo r0, 0xaabbccddeeff0011 
- ; movnn r0, 0xaabbccddeeff0011 
- ; movn r0, 0xaabbccddeeff0011 
- ; movng r0, 0xaabbccddeeff0011 
- ; movg r0, 0xaabbccddeeff0011 
- ; movns r0, 0xaabbccddeeff0011 
- ; movs r0, 0xaabbccddeeff0011 
- ; movge r0, 0xaabbccddeeff0011 
- ; movse r0, 0xaabbccddeeff0011 
+ movnz r0, 0xaabbccddeeff0011 
+ movz r0, 0xaabbccddeeff0011 
+ movne r0, 0xaabbccddeeff0011 
+ move r0, 0xaabbccddeeff0011 
+ movnc r0, 0xaabbccddeeff0011 
+ movc r0, 0xaabbccddeeff0011 
+ movno r0, 0xaabbccddeeff0011 
+ movo r0, 0xaabbccddeeff0011 
+ movnn r0, 0xaabbccddeeff0011 
+ movn r0, 0xaabbccddeeff0011 
+ movng r0, 0xaabbccddeeff0011 
+ movg r0, 0xaabbccddeeff0011 
+ movns r0, 0xaabbccddeeff0011 
+ movs r0, 0xaabbccddeeff0011 
+ movge r0, 0xaabbccddeeff0011 
+ movse r0, 0xaabbccddeeff0011 
 
- ; ; Control flow Instructions
- ; jmp gpc_init
- ; 
- ; jnz gpc_init
- ; jz gpc_init
- ; jne gpc_init
- ; je gpc_init
- ; jnc gpc_init
- ; jc gpc_init
- ; jno gpc_init
- ; jo gpc_init
- ; jnn gpc_init
- ; jn gpc_init
- ; jng gpc_init
- ; jg gpc_init
- ; jns gpc_init
- ; js gpc_init
- ; jge gpc_init
- ; jse gpc_init
+ ; Control flow Instructions
+ jmp gpc_init
+ 
+ jnz gpc_init
+ jz gpc_init
+ jne gpc_init
+ je gpc_init
+ jnc gpc_init
+ jc gpc_init
+ jno gpc_init
+ jo gpc_init
+ jnn gpc_init
+ jn gpc_init
+ jng gpc_init
+ jg gpc_init
+ jns gpc_init
+ js gpc_init
+ jge gpc_init
+ jse gpc_init
 
- ; call gpc_init
- ; 
- ; ret 
- ; retnz
- ; retz
- ; retne
- ; rete
- ; retnc
- ; retc
- ; retno
- ; retn
- ; retng
- ; retg
- ; retns
- ; rets
- ; retge
- ; retse
+ call gpc_init
+ 
+ ret 
+ retnz
+ retz
+ retne
+ rete
+ retnc
+ retc
+ retno
+ retn
+ retng
+ retg
+ retns
+ rets
+ retge
+ retse
 
 tmp:
  ; loop r0, tmp
 
- ; mov r0, [gpc_init] ; Using the '[]' will give the address
- ; call r0
+ call r0
 
- ; jmp r0
+ jmp r0
 
- ; int 123 ; Interrupt[INT_ID = 123]
+ int 123 ; Interrupt[INT_ID = 123]
 
- ; ; Stack based Instructions
- ; pushb byte_type_variable
- ; pushw word_type_variable
- ; pushd dword_type_variable
- ; pushq qword_type_variable
- ; push r0
- ; 
- ; popb r0
- ; popw r1
- ; popd r0
- ; popq r0
+ ; Stack based Instructions
+ pushb byte_type_variable
+ pushw word_type_variable
+ pushd dword_type_variable
+ pushq qword_type_variable
+ push r0
+ 
+ popb r0
+ popw r1
+ popd r0
+ popq r0
 
- ; pusha
- ; popa
+ pusha
+ popa
 
- ; pushb 123
- ; pushw 2222
- ; pushd 131231
- ; pushq 321314344
+ pushb 123
+ pushw 2222
+ pushd 131231
+ pushq 321314344
 
- ; popb byte_type_variable
- ; popw word_type_variable
- ; popd dword_type_variable
- ; popq qword_type_variable
+ popb byte_type_variable
+ popw word_type_variable
+ popd dword_type_variable
+ popq qword_type_variable
 
  ; loadsb r0, 5
  ; loadsw r0, 5
@@ -228,34 +237,34 @@ tmp:
  ; storesd r0, 5
  ; storesq r0, 5
 
- ; ; Logical Instructions
- ; and r0, r1
- ; and r0, 123
+ ; Logical Instructions
+ and r0, r1
+ and r0, 123
 
- ; or r0, r1
- ; or r0, 123
+ or r0, r1
+ or r0, 123
 
- ; xor r0, r1
- ; xor r0, 123
- ; 
- ; not r0
+ xor r0, r1
+ xor r0, 123
+ 
+ not r0
 
- ; shl r0, 12
- ; shr r0, 11
+ shl r0, 12
+ shr r0, 11
 
  ; mov r0, 11
 
- ; shl r0, r0
- ; shr r0, r0
+ shl r0, r0
+ shr r0, r0
 
- ; cmp r0, 242
- ; cmp r0, r1
+ cmp r0, 242
+ cmp r0, r1
 
- ; cmp r0, byte_type_variable
- ; cmp r0, word_type_variable
- ; cmp r0, dword_type_variable
- ; cmp r0, qword_type_variable
- ; 
+ cmp r0, byte_type_variable
+ cmp r0, word_type_variable
+ cmp r0, dword_type_variable
+ cmp r0, qword_type_variable
+ 
  ; fcmp r0, r1
  ; fcmp32 r0, r1
 
@@ -294,10 +303,9 @@ tmp:
  ; inf32 r0
  ; outf32 r0
 
- ; outr
- ; uoutr
+ outr
+ uoutr
 
- ; mov r0, [name]
  ; sin r0
  ; sout r0
 
@@ -327,8 +335,8 @@ tmp:
  ; cmpxchg
  ; cmpxchg
 
- ; cflags
- ; reset
+ cflags
+ reset
  ; 
  ; whdlr gpc_init
 
