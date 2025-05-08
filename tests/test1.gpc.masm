@@ -194,7 +194,7 @@ main:
  retse
 
 tmp:
- ; loop r0, tmp
+ loop r0, tmp
 
  call r0
 
@@ -227,15 +227,15 @@ tmp:
  popd dword_type_variable
  popq qword_type_variable
 
- ; loadsb r0, 5
- ; loadsw r0, 5
- ; loadsd r0, 5
- ; loadsq r0, 5
+ loadsb r0, 5
+ loadsw r0, 5
+ loadsd r0, 5
+ loadsq r0, 5
 
- ; storesb r0, 5
- ; storesw r0, 5
- ; storesd r0, 5
- ; storesq r0, 5
+ storesb r0, 5
+ storesw r0, 5
+ storesd r0, 5
+ storesq r0, 5
 
  ; Logical Instructions
  and r0, r1
@@ -252,8 +252,6 @@ tmp:
  shl r0, 12
  shr r0, 11
 
- ; mov r0, 11
-
  shl r0, r0
  shr r0, r0
 
@@ -265,80 +263,80 @@ tmp:
  cmp r0, dword_type_variable
  cmp r0, qword_type_variable
  
- ; fcmp r0, r1
- ; fcmp32 r0, r1
+ fcmp r0, r1
+ fcmp32 r0, r1
 
- ; cin r0
- ; cout r0
- ; sin name ; Length is in r0
- ; sout name
+ cin r0
+ cout r0
+ sin name ; Length is in r0
+ sout name
 
- ; in r0
- ; out r0
+ in r0
+ out r0
 
- ; inw r0
- ; outw r0
+ inw r0
+ outw r0
 
- ; ind r0
- ; outd r0
- ; 
- ; inq r0
- ; outq r0
+ ind r0
+ outd r0
+ 
+ inq r0
+ outq r0
 
- ; uin r0
- ; uout r0
+ uin r0
+ uout r0
 
- ; uinw r0
- ; uoutw r0
+ uinw r0
+ uoutw r0
 
- ; uind r0
- ; uoutd r0
- ; 
- ; uinq r0
- ; uoutq r0
+ uind r0
+ uoutd r0
+ 
+ uinq r0
+ uoutq r0
 
- ; inf r0
- ; outf r0
+ inf r0
+ outf r0
 
- ; inf32 r0
- ; outf32 r0
+ inf32 r0
+ outf32 r0
 
  outr
  uoutr
 
- ; sin r0
- ; sout r0
+ sin r0
+ sout r0
 
- ; ; Memory-Register data movement Instructions
- ; loadb r0, byte_type_variable 
- ; loadw r0, word_type_variable 
- ; loadd r0, dword_type_variable 
- ; loadq r0, qword_type_variable 
+ ; Memory-Register data movement Instructions
+ loadb r0, byte_type_variable 
+ loadw r0, word_type_variable 
+ loadd r0, dword_type_variable 
+ loadq r0, qword_type_variable 
 
- ; storeb r0, byte_type_variable 
- ; storew r0, word_type_variable 
- ; stored r0, dword_type_variable 
- ; storeq r0, qword_type_variable 
+ storeb r0, byte_type_variable 
+ storew r0, word_type_variable 
+ stored r0, dword_type_variable 
+ storeq r0, qword_type_variable 
 
- ; loadb r0, r0
- ; loadw r0, r0
- ; loadd r0, r0
- ; loadq r0, r0
+ loadb r0, r0
+ loadw r0, r0
+ loadd r0, r0
+ loadq r0, r0
 
- ; storeb r0, r0
- ; storew r0, r0
- ; stored r0, r0
- ; storeq r0, r0
- ;
- ; ; Just insert the keyword 'atm' in front of loadX and storeX for atomic operation
- ; lea 
- ; cmpxchg
- ; cmpxchg
+ storeb r0, r0
+ storew r0, r0
+ stored r0, r0
+ storeq r0, r0
+ 
+ ; Just insert the keyword 'atm' in front of loadX and storeX for atomic operation
+ lea r0, r1, r2, r3 ; r0 = r1 + r2*r3 -> dest = base + index * scale 
+ cmpxchg r0, r1, name ; cmpxchg desired, expected, variable -> if (variable == expected) variable = desired
+ cmpxchg r0, r1, r2 ; The variable address is in r2
 
  cflags
  reset
- ; 
- ; whdlr gpc_init
+  
+ whdlr gpc_init
 
 gpc_init:
  ; pusha

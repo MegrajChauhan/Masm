@@ -49,6 +49,12 @@ public:
   bool handle_instructions_with_imm(Lexer &lexer, node_t type);
 
   bool handle_instructions_with_imm_or_reg(Lexer &lexer, node_t type);
+
+  bool handle_lea(Lexer &lexer);
+
+  bool handle_cmpxchg(Lexer &lexer);
+
+  bool handle_atm_inst(Lexer &lexer);
 };
 }; // namespace masm
 

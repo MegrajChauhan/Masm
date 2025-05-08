@@ -163,10 +163,83 @@ enum node_t {
   NODE_PUSHD,
   NODE_PUSHQ,
   NODE_PUSH,
-  NODE_POPB,
-  NODE_POPW,
-  NODE_POPD,
-  NODE_POPQ
+  NODE_POPB_IMM,
+  NODE_POPB_REG,
+  NODE_POPW_IMM,
+  NODE_POPW_REG,
+  NODE_POPD_IMM,
+  NODE_POPD_REG,
+  NODE_POPQ_IMM,
+  NODE_POPQ_REG,
+  NODE_LOOP,
+  NODE_LOADSB,
+  NODE_LOADSW,
+  NODE_LOADSD,
+  NODE_LOADSQ,
+  NODE_STORESB,
+  NODE_STORESW,
+  NODE_STORESD,
+  NODE_STORESQ,
+  NODE_FCMP,
+  NODE_FCMP32,
+  NODE_CIN,
+  NODE_COUT,
+  NODE_SIN_IMM,
+  NODE_SIN_REG,
+  NODE_SOUT_IMM,
+  NODE_SOUT_REG,
+  NODE_IN,
+  NODE_OUT,
+  NODE_INW,
+  NODE_OUTW,
+  NODE_IND,
+  NODE_OUTD,
+  NODE_INQ,
+  NODE_OUTQ,
+  NODE_UIN,
+  NODE_UOUT,
+  NODE_UINW,
+  NODE_UOUTW,
+  NODE_UIND,
+  NODE_UOUTD,
+  NODE_UINQ,
+  NODE_UOUTQ,
+  NODE_LOADB_IMM,
+  NODE_LOADB_REG,
+  NODE_LOADW_IMM,
+  NODE_LOADW_REG,
+  NODE_LOADD_IMM,
+  NODE_LOADD_REG,
+  NODE_LOADQ_IMM,
+  NODE_LOADQ_REG,
+  NODE_STOREB_IMM,
+  NODE_STOREB_REG,
+  NODE_STOREW_IMM,
+  NODE_STOREW_REG,
+  NODE_STORED_IMM,
+  NODE_STORED_REG,
+  NODE_STOREQ_IMM,
+  NODE_STOREQ_REG,
+  NODE_ATM_LOADB_IMM,
+  NODE_ATM_LOADB_REG,
+  NODE_ATM_LOADW_IMM,
+  NODE_ATM_LOADW_REG,
+  NODE_ATM_LOADD_IMM,
+  NODE_ATM_LOADD_REG,
+  NODE_ATM_LOADQ_IMM,
+  NODE_ATM_LOADQ_REG,
+  NODE_ATM_STOREB_IMM,
+  NODE_ATM_STOREB_REG,
+  NODE_ATM_STOREW_IMM,
+  NODE_ATM_STOREW_REG,
+  NODE_ATM_STORED_IMM,
+  NODE_ATM_STORED_REG,
+  NODE_ATM_STOREQ_IMM,
+  NODE_ATM_STOREQ_REG,
+  NODE_WHDLR,
+  NODE_LEA,
+  NODE_CMPXCHG_IMM,
+  NODE_CMPXCHG_REG
 };
 
 struct NodeBase {};
@@ -210,10 +283,12 @@ struct NodeRegrImm : public NodeBase {
   token_t regr;
   std::string immediate;
   value_t type;
+  bool is_atm = false;
 };
 
 struct NodeRegReg : public NodeBase {
   token_t r1, r2;
+  bool is_atm = false;
 };
 
 struct NodeReg : public NodeBase {
@@ -223,6 +298,20 @@ struct NodeReg : public NodeBase {
 struct NodeImm : public NodeBase {
   std::string imm;
   value_t type;
+};
+
+struct NodeLea : public NodeBase {
+  token_t r1, r2, r3, r4;
+};
+
+struct NodeCMPXCHGImm : public NodeBase {
+  token_t r1, r2;
+  std::string imm;
+  value_t type;
+};
+
+struct NodeCMPXCHGReg : public NodeBase {
+  token_t r1, r2, r3;
 };
 
 struct Node {

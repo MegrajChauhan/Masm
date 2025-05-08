@@ -445,14 +445,218 @@ bool masm::GPCParser::parse() {
       if (!handle_instructions_with_imm_or_reg(lexer, NODE_CALL_IMM))
         return false;
       break;
+    case TOKEN_PUSHB:
+      if (!handle_instructions_with_imm(lexer, NODE_PUSHB))
+        return false;
+      break;
+    case TOKEN_PUSHW:
+      if (!handle_instructions_with_imm(lexer, NODE_PUSHW))
+        return false;
+      break;
+    case TOKEN_PUSHD:
+      if (!handle_instructions_with_imm(lexer, NODE_PUSHD))
+        return false;
+      break;
+    case TOKEN_PUSHQ:
+      if (!handle_instructions_with_imm(lexer, NODE_PUSHQ))
+        return false;
+      break;
+    case TOKEN_PUSH:
+      if (!handle_instructions_with_reg(lexer, NODE_PUSH))
+        return false;
+      break;
+    case TOKEN_POPB:
+      if (!handle_instructions_with_imm_or_reg(lexer, NODE_POPB_IMM))
+        return false;
+      break;
+    case TOKEN_POPW:
+      if (!handle_instructions_with_imm_or_reg(lexer, NODE_POPW_IMM))
+        return false;
+      break;
+    case TOKEN_POPD:
+      if (!handle_instructions_with_imm_or_reg(lexer, NODE_POPD_IMM))
+        return false;
+      break;
+    case TOKEN_POPQ:
+      if (!handle_instructions_with_imm_or_reg(lexer, NODE_POPQ_IMM))
+        return false;
+      break;
+    case TOKEN_LOOP:
+      if (!handle_instructions_with_reg_imm(lexer, NODE_LOOP))
+        return false;
+      break;
+    case TOKEN_LOADSB:
+      if (!handle_instructions_with_reg_imm(lexer, NODE_LOADSB))
+        return false;
+      break;
+    case TOKEN_LOADSW:
+      if (!handle_instructions_with_reg_imm(lexer, NODE_LOADSW))
+        return false;
+      break;
+    case TOKEN_LOADSD:
+      if (!handle_instructions_with_reg_imm(lexer, NODE_LOADSD))
+        return false;
+      break;
+    case TOKEN_LOADSQ:
+      if (!handle_instructions_with_reg_imm(lexer, NODE_LOADSQ))
+        return false;
+      break;
+    case TOKEN_STORESB:
+      if (!handle_instructions_with_reg_imm(lexer, NODE_STORESB))
+        return false;
+      break;
+    case TOKEN_STORESW:
+      if (!handle_instructions_with_reg_imm(lexer, NODE_STORESW))
+        return false;
+      break;
+    case TOKEN_STORESD:
+      if (!handle_instructions_with_reg_imm(lexer, NODE_STORESD))
+        return false;
+      break;
+    case TOKEN_STORESQ:
+      if (!handle_instructions_with_reg_imm(lexer, NODE_STORESQ))
+        return false;
+      break;
+    case TOKEN_FCMP:
+      if (!handle_instructions_with_reg_reg(lexer, NODE_FCMP))
+        return false;
+      break;
+    case TOKEN_FCMP32:
+      if (!handle_instructions_with_reg_reg(lexer, NODE_FCMP32))
+        return false;
+      break;
+    case TOKEN_CIN:
+      if (!handle_instructions_with_reg(lexer, NODE_CIN))
+        return false;
+      break;
+    case TOKEN_COUT:
+      if (!handle_instructions_with_reg(lexer, NODE_COUT))
+        return false;
+      break;
+    case TOKEN_SIN:
+      if (!handle_instructions_with_imm_or_reg(lexer, NODE_SIN_IMM))
+        return false;
+      break;
+    case TOKEN_SOUT:
+      if (!handle_instructions_with_imm_or_reg(lexer, NODE_SOUT_IMM))
+        return false;
+      break;
+    case TOKEN_IN:
+      if (!handle_instructions_with_reg(lexer, NODE_IN))
+        return false;
+      break;
+    case TOKEN_OUT:
+      if (!handle_instructions_with_reg(lexer, NODE_OUT))
+        return false;
+      break;
+    case TOKEN_INW:
+      if (!handle_instructions_with_reg(lexer, NODE_INW))
+        return false;
+      break;
+    case TOKEN_OUTW:
+      if (!handle_instructions_with_reg(lexer, NODE_OUTW))
+        return false;
+      break;
+    case TOKEN_IND:
+      if (!handle_instructions_with_reg(lexer, NODE_IND))
+        return false;
+      break;
+    case TOKEN_OUTD:
+      if (!handle_instructions_with_reg(lexer, NODE_OUTD))
+        return false;
+      break;
+    case TOKEN_INQ:
+      if (!handle_instructions_with_reg(lexer, NODE_INQ))
+        return false;
+      break;
+    case TOKEN_OUTQ:
+      if (!handle_instructions_with_reg(lexer, NODE_OUTQ))
+        return false;
+      break;
+    case TOKEN_UIN:
+      if (!handle_instructions_with_reg(lexer, NODE_UIN))
+        return false;
+      break;
+    case TOKEN_UOUT:
+      if (!handle_instructions_with_reg(lexer, NODE_UOUT))
+        return false;
+      break;
+    case TOKEN_UINW:
+      if (!handle_instructions_with_reg(lexer, NODE_UINW))
+        return false;
+      break;
+    case TOKEN_UOUTW:
+      if (!handle_instructions_with_reg(lexer, NODE_UOUTW))
+        return false;
+      break;
+    case TOKEN_UIND:
+      if (!handle_instructions_with_reg(lexer, NODE_UIND))
+        return false;
+      break;
+    case TOKEN_UOUTD:
+      if (!handle_instructions_with_reg(lexer, NODE_UOUTD))
+        return false;
+      break;
+    case TOKEN_UINQ:
+      if (!handle_instructions_with_reg(lexer, NODE_UINQ))
+        return false;
+      break;
+    case TOKEN_UOUTQ:
+      if (!handle_instructions_with_reg(lexer, NODE_UOUTQ))
+        return false;
+      break;
+    case TOKEN_LOADB:
+      if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                       NODE_LOADB_IMM))
+        return false;
+      break;
+    case TOKEN_LOADW:
+      if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                       NODE_LOADW_IMM))
+        return false;
+      break;
+    case TOKEN_LOADD:
+      if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                       NODE_LOADD_IMM))
+        return false;
+      break;
+    case TOKEN_LOADQ:
+      if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                       NODE_LOADQ_IMM))
+        return false;
+      break;
+    case TOKEN_STOREB:
+      if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                       NODE_STOREB_IMM))
+        return false;
+      break;
+    case TOKEN_STOREW:
+      if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                       NODE_STOREW_IMM))
+        return false;
+      break;
+    case TOKEN_STORED:
+      if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                       NODE_STORED_IMM))
+        return false;
+      break;
+    case TOKEN_STOREQ:
+      if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                       NODE_STOREQ_IMM))
+        return false;
+      break;
+    case TOKEN_WHDLR:
+      if (!handle_instructions_with_imm(lexer, NODE_WHDLR))
+        return false;
+      break;
     default:
       detailed_message(file.c_str(), curr.line,
                        "Cannot build a node from this.", NULL);
       return false;
-    }
-    curr = lexer.next_token();
-  }
 
+      curr = lexer.next_token();
+    }
+  }
   return true;
 }
 
@@ -844,3 +1048,75 @@ bool masm::GPCParser::handle_instructions_with_imm_or_reg(Lexer &lexer,
   nodes.push_back(std::move(node));
   return true;
 }
+
+bool masm::GPCParser::handle_lea(Lexer &lexer) {
+  token_t r[4];
+  for (size_t i = 0; i < 4; i++) {
+    Token oper = lexer.next_token();
+    if (oper.type >= R0 && oper.type <= ACC) {
+      r[i] = oper.type;
+    } else {
+      detailed_message(file.c_str(), oper.line,
+                       "GPC: Invalid LEA Instruction format.", NULL);
+      return false;
+    }
+  }
+  Node node;
+  node.node = std::make_unique<NodeLea>();
+  NodeLea *lea = (NodeLea *)node.node.get();
+  lea->r1 = r[0];
+  lea->r2 = r[1];
+  lea->r3 = r[2];
+  lea->r4 = r[3];
+  node.type = NODE_LEA;
+  nodes.push_back(std::move(node));
+  return true;
+}
+
+bool masm::GPCParser::handle_cmpxchg(Lexer &lexer) {
+  token_t r[2];
+  Token oper;
+  bool is_reg = false;
+  for (size_t i = 0; i < 2; i++) {
+    oper = lexer.next_token();
+    if (oper.type >= R0 && oper.type <= ACC) {
+      r[i] = oper.type;
+    } else {
+      detailed_message(file.c_str(), oper.line,
+                       "GPC: Invalid CMPXCHG Instruction format.", NULL);
+      return false;
+    }
+  }
+  oper = lexer.next_token();
+  value_t val_type = figure_out_type(oper.type);
+  if (oper.type >= R0 && oper.type <= ACC) {
+    is_reg = true;
+  } else if (val_type != VALUE_IDEN) {
+    detailed_message(file.c_str(), oper.line,
+                     "GPC: Invalid CMPXCHG Instruction format(expected "
+                     "variable or register as second operand).",
+                     NULL);
+    return false;
+  }
+  Node node;
+  if (is_reg) {
+    node.node = std::make_unique<NodeCMPXCHGReg>();
+    NodeCMPXCHGReg *cmpxchg = (NodeCMPXCHGReg *)node.node.get();
+    cmpxchg->r1 = r[0];
+    cmpxchg->r2 = r[1];
+    cmpxchg->r3 = oper.type;
+    node.type = NODE_CMPXCHG_REG;
+  } else {
+    node.node = std::make_unique<NodeCMPXCHGImm>();
+    NodeCMPXCHGImm *cmpxchg = (NodeCMPXCHGImm *)node.node.get();
+    cmpxchg->r1 = r[0];
+    cmpxchg->r2 = r[1];
+    cmpxchg->imm = oper.value;
+    cmpxchg->type = val_type;
+    node.type = NODE_CMPXCHG_IMM;
+  }
+  nodes.push_back(std::move(node));
+  return true;
+}
+
+bool masm::GPCParser::handle_atm_inst(Lexer &lexer) { return true; }
