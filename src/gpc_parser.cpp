@@ -62,6 +62,9 @@ bool masm::GPCParser::parse() {
     case TOKEN_RETN:
       handle_simple_instructions(NODE_RETN);
       break;
+    case TOKEN_RETNN:
+      handle_simple_instructions(NODE_RETNN);
+      break;
     case TOKEN_RETNG:
       handle_simple_instructions(NODE_RETNG);
       break;

@@ -1,7 +1,7 @@
 # Variable definitions
 CC = g++
 FLAGS = -Wall -Wextra -MMD -MP -std=c++20
-DIRS = includes includes/parser core_details includes/analyzer
+DIRS = includes includes/parser core_details includes/analyzer includes/gen
 SRC_DIR = src/
 INC_DIRS = ${addprefix -I, ${DIRS}}
 FLAGS += ${flags}

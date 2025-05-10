@@ -87,6 +87,7 @@ enum node_t {
   NODE_RETC,
   NODE_RETNO,
   NODE_RETO,
+  NODE_RETNN,
   NODE_RETN,
   NODE_RETNG,
   NODE_RETG,

@@ -192,6 +192,8 @@ main:
  retnc
  retc
  retno
+ reto
+ retnn
  retn
  retng
  retg
