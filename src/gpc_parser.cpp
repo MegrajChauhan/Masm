@@ -605,6 +605,22 @@ bool masm::GPCParser::parse() {
       if (!handle_instructions_with_reg(lexer, NODE_UOUTQ))
         return false;
       break;
+    case TOKEN_INF:
+      if (!handle_instructions_with_reg(lexer, NODE_INF))
+        return false;
+      break;
+    case TOKEN_OUTF:
+      if (!handle_instructions_with_reg(lexer, NODE_OUTF))
+        return false;
+      break;
+    case TOKEN_INF32:
+      if (!handle_instructions_with_reg(lexer, NODE_INF32))
+        return false;
+      break;
+    case TOKEN_OUTF32:
+      if (!handle_instructions_with_reg(lexer, NODE_OUTF32))
+        return false;
+      break;
     case TOKEN_LOADB:
       if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
                                                        NODE_LOADB_IMM))
@@ -649,13 +665,25 @@ bool masm::GPCParser::parse() {
       if (!handle_instructions_with_imm(lexer, NODE_WHDLR))
         return false;
       break;
-    default:
+    case TOKEN_ATM:
+      if (!handle_atm_inst(lexer))
+        return false;
+      break;
+    case TOKEN_LEA:
+      if (!handle_lea(lexer))
+        return false;
+      break;
+    case TOKEN_CMPXCHG:
+      if (!handle_cmpxchg(lexer))
+        return false;
+      break;
+    default: {
       detailed_message(file.c_str(), curr.line,
                        "Cannot build a node from this.", NULL);
       return false;
-
-      curr = lexer.next_token();
     }
+    }
+    curr = lexer.next_token();
   }
   return true;
 }
@@ -729,7 +757,6 @@ bool masm::GPCParser::handle_const_definition(Lexer &lexer) {
   }
 
   const_value = lexer.next_token();
-
   value_t type = figure_out_type(const_value.type);
   if (type == VALUE_ERR) {
     detailed_message(file.c_str(), const_name.line,
@@ -843,7 +870,7 @@ bool masm::GPCParser::handle_df_dlf(Lexer &lexer, Token name) {
   Token type = lexer.next_token();
   Token value = lexer.next_token();
   value_t t = figure_out_type(value.type);
-  if (t != VALUE_FLOAT && t != VALUE_IDEN) {
+  if (t != VALUE_INTEGER && t != VALUE_FLOAT && t != VALUE_IDEN) {
     detailed_message(file.c_str(), value.line,
                      "Expected Floating point value after float type.", NULL);
     return false;
@@ -1115,8 +1142,88 @@ bool masm::GPCParser::handle_cmpxchg(Lexer &lexer) {
     cmpxchg->type = val_type;
     node.type = NODE_CMPXCHG_IMM;
   }
+  node.file = file;
+  node.line = oper.line;
   nodes.push_back(std::move(node));
   return true;
 }
 
-bool masm::GPCParser::handle_atm_inst(Lexer &lexer) { return true; }
+bool masm::GPCParser::handle_atm_inst(Lexer &lexer) {
+  Token curr = lexer.next_token();
+  switch (curr.type) {
+  case TOKEN_LOADB:
+    if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                     NODE_ATM_LOADB_IMM))
+      return false;
+    break;
+  case TOKEN_LOADW:
+    if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                     NODE_ATM_LOADW_IMM))
+      return false;
+    break;
+  case TOKEN_LOADD:
+    if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                     NODE_ATM_LOADD_IMM))
+      return false;
+    break;
+  case TOKEN_LOADQ:
+    if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                     NODE_ATM_LOADQ_IMM))
+      return false;
+    break;
+  case TOKEN_STOREB:
+    if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                     NODE_ATM_STOREB_IMM))
+      return false;
+    break;
+  case TOKEN_STOREW:
+    if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                     NODE_ATM_STOREW_IMM))
+      return false;
+    break;
+  case TOKEN_STORED:
+    if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                     NODE_ATM_STORED_IMM))
+      return false;
+    break;
+  case TOKEN_STOREQ:
+    if (!handle_instructions_with_reg_reg_or_reg_imm(lexer, curr,
+                                                     NODE_ATM_STOREQ_IMM))
+      return false;
+    break;
+  default:
+    detailed_message(file.c_str(), curr.line,
+                     "GPC: Unknown Atomic Instruction(expected "
+                     "STOREX and LOADX).",
+                     NULL);
+    return false;
+  }
+  return true;
+}
+
+bool masm::GPCParser::handle_instructions_with_reg_reg(Lexer &lexer,
+                                                       node_t type) {
+  token_t r1, r2;
+  Token oper = lexer.next_token();
+  if (!(oper.type >= R0 && oper.type <= ACC)) {
+    detailed_message(file.c_str(), oper.line,
+                     "GPC: Expected register as first operand", NULL);
+    return false;
+  }
+  r1 = oper.type;
+  oper = lexer.next_token();
+  if (!(oper.type >= R0 && oper.type <= ACC)) {
+    detailed_message(file.c_str(), oper.line,
+                     "GPC: Expected register as second operand", NULL);
+    return false;
+  }
+  r2 = oper.type;
+
+  Node node;
+  node.node = std::make_unique<NodeRegReg>();
+  NodeRegReg *r = (NodeRegReg *)node.node.get();
+  r->r1 = r1;
+  r->r2 = r2;
+  nodes.push_back(std::move(node));
+  return true;
+}

@@ -14,7 +14,7 @@ bool masm::GPCAnalyzer::analyze() {
   // The second loop will finally analyze the Instructions.
   if (!first_loop())
     return false;
-  return true;
+  return second_loop();
 }
 
 bool masm::GPCAnalyzer::validate_defined_variables(Node &n) {
@@ -261,24 +261,355 @@ bool masm::GPCAnalyzer::second_loop() {
    * */
   for (Node &n : nodes) {
     switch (n.type) {
-    case NODE_LABEL:
-    case NODE_DB:
-    case NODE_DW:
-    case NODE_DD:
-    case NODE_DQ:
-    case NODE_DS:
-    case NODE_DF:
-    case NODE_DLF:
-    case NODE_RESB:
-    case NODE_RESW:
-    case NODE_RESD:
-    case NODE_RESQ:
-    case NODE_RESF:
-    case NODE_RESLF:
-    case NODE_NOP: {
-      result.push_back(std::move(n));
+    case CONST_DEF:
+      break;
+    case NODE_CMP_IMM:
+    case NODE_IMOD_IMM:
+    case NODE_IDIV_IMM:
+    case NODE_IMUL_IMM:
+    case NODE_ISUB_IMM:
+    case NODE_IADD_IMM:
+    case NODE_MOD_IMM:
+    case NODE_DIV_IMM:
+    case NODE_MUL_IMM:
+    case NODE_SUB_IMM:
+    case NODE_ADD_IMM: {
+      NodeRegrImm *ri = (NodeRegrImm *)n.node.get();
+      if (ri->type == VALUE_IDEN) {
+        std::pair<bool, std::pair<masm::value_t, std::string>> c =
+            resolve_if_constant(ri->immediate, {VALUE_INTEGER, VALUE_BINARY,
+                                                VALUE_HEX, VALUE_OCTAL});
+
+        if (c.first) {
+          // Indeed a constant
+          ri->immediate = c.second.second;
+          ri->type = c.second.first;
+        } else {
+          // Not a constant but could be a variable
+          if (resolve_variable(ri->immediate, {BYTE, WORD, DWORD, QWORD})) {
+            ri->is_var = true;
+          } else {
+            detailed_message(n.file.c_str(), n.line,
+                             "Unknwon IMMEDIATE value type: Not a constant and "
+                             "not a variable.",
+                             NULL);
+            return false;
+          }
+        }
+      }
       break;
     }
+    case NODE_FDIV32_IMM:
+    case NODE_FMUL32_IMM:
+    case NODE_FSUB32_IMM:
+    case NODE_FADD32_IMM:
+    case NODE_FDIV_IMM:
+    case NODE_FMUL_IMM:
+    case NODE_FSUB_IMM:
+    case NODE_FADD_IMM: {
+      NodeRegrImm *ri = (NodeRegrImm *)n.node.get();
+      if (ri->type == VALUE_IDEN) {
+        if (resolve_variable(ri->immediate, {FLOAT})) {
+          ri->is_var = true;
+        } else {
+          detailed_message(
+              n.file.c_str(), n.line,
+              "Expected VARIABLE as operand but got something else.", NULL);
+          return false;
+        }
+      }
+      break;
+    }
+    case NODE_MOVSXB_IMM:
+    case NODE_MOVSXW_IMM:
+    case NODE_MOVSXD_IMM:
+    case NODE_MOVF:
+    case NODE_MOVF32:
+    case NODE_MOVNZ:
+    case NODE_MOVZ:
+    case NODE_MOVNE:
+    case NODE_MOVE:
+    case NODE_MOVNC:
+    case NODE_MOVC:
+    case NODE_MOVNO:
+    case NODE_MOVO:
+    case NODE_MOVNN:
+    case NODE_MOVN:
+    case NODE_MOVNG:
+    case NODE_MOVG:
+    case NODE_MOVNS:
+    case NODE_MOVS:
+    case NODE_MOVGE:
+    case NODE_MOVSE:
+    case NODE_MOV: {
+      NodeRegrImm *ri = (NodeRegrImm *)n.node.get();
+      if (ri->type == VALUE_IDEN) {
+        bool f = n.type == NODE_MOVF || n.type == NODE_MOVF32;
+        std::pair<bool, std::pair<masm::value_t, std::string>> c =
+            resolve_if_constant(
+                ri->immediate,
+                f ? std::array<value_t, 4>{VALUE_FLOAT}
+                  : std::array<value_t, 4>(
+                        {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_OCTAL}));
+
+        if (c.first) {
+          ri->immediate = c.second.second;
+          ri->type = c.second.first;
+        } else {
+          detailed_message(n.file.c_str(), n.line,
+                           "Unknwon IMMEDIATE value type: Not a constant when "
+                           "expected a constant.",
+                           NULL);
+          return false;
+        }
+      }
+      break;
+    }
+    case NODE_WHDLR:
+    case NODE_CALL_IMM:
+    case NODE_JNZ:
+    case NODE_JZ:
+    case NODE_JNE:
+    case NODE_JE:
+    case NODE_JNC:
+    case NODE_JC:
+    case NODE_JNO:
+    case NODE_JO:
+    case NODE_JNN:
+    case NODE_JN:
+    case NODE_JNG:
+    case NODE_JG:
+    case NODE_JNS:
+    case NODE_JS:
+    case NODE_JGE:
+    case NODE_JSE:
+    case NODE_JMP_IMM: {
+      NodeImm *i = (NodeImm *)n.node.get();
+      if (labels.find(i->imm) == labels.end()) {
+        detailed_message(n.file.c_str(), n.line,
+                         "Unknwon LABEL to jump to: Not a valid label.", NULL);
+        return false;
+      }
+      break;
+    }
+    case NODE_LOOP: {
+      NodeRegrImm *i = (NodeRegrImm *)n.node.get();
+      if (labels.find(i->immediate) == labels.end()) {
+        detailed_message(n.file.c_str(), n.line,
+                         "Unknwon LABEL to jump to: Not a valid label.", NULL);
+        return false;
+      }
+      break;
+    }
+    case NODE_INT: {
+      NodeRegrImm *ri = (NodeRegrImm *)n.node.get();
+      if (ri->type == VALUE_IDEN) {
+        std::pair<bool, std::pair<masm::value_t, std::string>> c =
+            resolve_if_constant(ri->immediate, {VALUE_INTEGER, VALUE_BINARY,
+                                                VALUE_HEX, VALUE_OCTAL});
+
+        if (c.first) {
+          ri->immediate = c.second.second;
+          ri->type = c.second.first;
+        } else {
+          detailed_message(n.file.c_str(), n.line,
+                           "Unknwon IMMEDIATE value type: Not a constant.",
+                           NULL);
+          return false;
+        }
+      }
+      break;
+    }
+    case NODE_PUSHB:
+      if (!analyze_stack_based_instructions(
+              n, BYTE, {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_HEX}))
+        return false;
+      break;
+    case NODE_PUSHW:
+      if (!analyze_stack_based_instructions(
+              n, WORD, {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_HEX}))
+        return false;
+      break;
+    case NODE_PUSHD:
+      if (!analyze_stack_based_instructions(
+              n, DWORD, {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_HEX}))
+        return false;
+      break;
+    case NODE_PUSHQ:
+      if (!analyze_stack_based_instructions(
+              n, QWORD, {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_HEX}))
+        return false;
+      break;
+    case NODE_POPB_IMM:
+      if (!analyze_stack_based_instructions(n, BYTE, {}))
+        return false;
+      break;
+    case NODE_POPW_IMM:
+      if (!analyze_stack_based_instructions(n, WORD, {}))
+        return false;
+      break;
+    case NODE_POPD_IMM:
+      if (!analyze_stack_based_instructions(n, DWORD, {}))
+        return false;
+      break;
+    case NODE_POPQ_IMM:
+      if (!analyze_stack_based_instructions(n, QWORD, {}))
+        return false;
+      break;
+    case NODE_LOADSB:
+    case NODE_LOADSW:
+    case NODE_LOADSD:
+    case NODE_LOADSQ:
+    case NODE_STORESB:
+    case NODE_STORESW:
+    case NODE_STORESD:
+    case NODE_STORESQ:
+    case NODE_AND_IMM:
+    case NODE_OR_IMM:
+    case NODE_XOR_IMM:
+    case NODE_SHL_IMM:
+    case NODE_SHR_IMM:
+      if (!analyze_instructions_with_only_const_imm(
+              n, {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_OCTAL}))
+        return false;
+      break;
+    case NODE_SOUT_IMM:
+    case NODE_SIN_IMM: {
+      NodeImm *i = (NodeImm *)n.node.get();
+      if (!symtable.symbol_exists(i->imm)) {
+        detailed_message(n.file.c_str(), n.line,
+                         "This variable doesn't exists.", NULL);
+        return false;
+      }
+      break;
+    }
+    case NODE_LOADB_IMM:
+      if (!analyze_load_store_instructions(n, BYTE))
+        return false;
+      break;
+    case NODE_LOADW_IMM:
+      if (!analyze_load_store_instructions(n, WORD))
+        return false;
+      break;
+    case NODE_LOADD_IMM:
+      if (!analyze_load_store_instructions(n, DWORD))
+        return false;
+      break;
+    case NODE_LOADQ_IMM:
+      if (!analyze_load_store_instructions(n, QWORD))
+        return false;
+      break;
+    case NODE_STOREB_IMM:
+      if (!analyze_load_store_instructions(n, BYTE))
+        return false;
+      break;
+    case NODE_STOREW_IMM:
+      if (!analyze_load_store_instructions(n, WORD))
+        return false;
+      break;
+    case NODE_STORED_IMM:
+      if (!analyze_load_store_instructions(n, DWORD))
+        return false;
+      break;
+    case NODE_STOREQ_IMM:
+      if (!analyze_load_store_instructions(n, QWORD))
+        return false;
+      break;
+    case NODE_CMPXCHG_IMM: {
+      NodeCMPXCHGImm *i = (NodeCMPXCHGImm *)n.node.get();
+      if (!resolve_variable(i->imm, {BYTE})) {
+        detailed_message(n.file.c_str(), n.line,
+                         "Invalid CMPXCHG Instruction format.", NULL);
+        return false;
+      }
+      break;
+    }
+    default:
+      break;
+    }
+    if (n.type != CONST_DEF)
+      result.push_back(std::move(n));
+  }
+  return true;
+}
+
+std::pair<bool, std::pair<masm::value_t, std::string>>
+masm::GPCAnalyzer::resolve_if_constant(std::string name,
+                                       std::array<value_t, 4> expected) {
+  std::unordered_map<std::string, std::pair<value_t, std::string>>::iterator
+      res = consts.find(name);
+  if (res == consts.end())
+    return std::make_pair(false, std::make_pair(VALUE_ERR, ""));
+
+  if (std::find(expected.begin(), expected.end(), res->second.first) ==
+      expected.end())
+    return std::make_pair(false, std::make_pair(VALUE_ERR, ""));
+  return std::make_pair(true, res->second);
+}
+
+bool masm::GPCAnalyzer::resolve_variable(std::string name,
+                                         std::array<data_t, 4> expected) {
+  if (!symtable.symbol_exists(name))
+    return false;
+  auto res = symtable.find_symbol(name);
+  if (std::find(expected.begin(), expected.end(), res->second.type) ==
+      expected.end())
+    return false;
+  return true;
+}
+
+bool masm::GPCAnalyzer::analyze_stack_based_instructions(
+    Node &n, data_t expected, std::array<value_t, 4> vtlist) {
+  NodeImm *imm = (NodeImm *)n.node.get();
+  if (imm->type == VALUE_IDEN) {
+    if (resolve_variable(imm->imm, {expected})) {
+      imm->is_var = true;
+      return true;
+    } else {
+      std::pair<bool, std::pair<masm::value_t, std::string>> res =
+          resolve_if_constant(imm->imm, vtlist);
+      if (!res.first) {
+        detailed_message(n.file.c_str(), n.line,
+                         "Invalid Operand For Instruction", NULL);
+        return false;
+      } else {
+        imm->imm = res.second.second;
+        imm->type = res.second.first;
+      }
+    }
+  }
+  return true;
+}
+
+bool masm::GPCAnalyzer::analyze_load_store_instructions(Node &n,
+                                                        data_t expected) {
+  NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+  if (imm->type == VALUE_IDEN) {
+    if (resolve_variable(imm->immediate, {expected})) {
+      imm->is_var = true;
+      return true;
+    } else {
+      detailed_message(n.file.c_str(), n.line,
+                       "Invalid Operand For Instruction", NULL);
+      return false;
+    }
+  }
+  return true;
+}
+
+bool masm::GPCAnalyzer::analyze_instructions_with_only_const_imm(
+    Node &n, std::array<value_t, 4> expected) {
+  NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+  if (imm->type == VALUE_IDEN) {
+    std::pair<bool, std::pair<masm::value_t, std::string>> res =
+        resolve_if_constant(imm->immediate, expected);
+    if (!res.first) {
+      detailed_message(n.file.c_str(), n.line,
+                       "Invalid Operand For Instruction", NULL);
+      return false;
+    } else {
+      imm->immediate = res.second.second;
+      imm->type = res.second.first;
     }
   }
   return true;

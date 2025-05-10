@@ -114,6 +114,7 @@ std::pair<bool, masm::token_t> masm::Lexer::lex_number() {
 }
 
 bool masm::Lexer::is_hexadecimal() {
+  iter++;
   while (iter != stream.end() &&
          ((*iter >= '0' && *iter <= '9') || (*iter >= 'a' && *iter <= 'f')))
     iter++;
@@ -121,12 +122,14 @@ bool masm::Lexer::is_hexadecimal() {
 }
 
 bool masm::Lexer::is_octal() {
+  iter++;
   while (iter != stream.end() && *iter >= '0' && *iter <= '7')
     iter++;
   return true;
 }
 
 bool masm::Lexer::is_binary() {
+  iter++;
   while (iter != stream.end() && (*iter == '0' || *iter == '1'))
     iter++;
   return true;

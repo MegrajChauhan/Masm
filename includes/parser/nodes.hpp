@@ -190,6 +190,10 @@ enum node_t {
   NODE_SOUT_REG,
   NODE_IN,
   NODE_OUT,
+  NODE_INF,
+  NODE_OUTF,
+  NODE_INF32,
+  NODE_OUTF32,
   NODE_INW,
   NODE_OUTW,
   NODE_IND,
@@ -283,12 +287,11 @@ struct NodeRegrImm : public NodeBase {
   token_t regr;
   std::string immediate;
   value_t type;
-  bool is_atm = false;
+  bool is_var = false;
 };
 
 struct NodeRegReg : public NodeBase {
   token_t r1, r2;
-  bool is_atm = false;
 };
 
 struct NodeReg : public NodeBase {
@@ -298,6 +301,7 @@ struct NodeReg : public NodeBase {
 struct NodeImm : public NodeBase {
   std::string imm;
   value_t type;
+  bool is_var = false;
 };
 
 struct NodeLea : public NodeBase {

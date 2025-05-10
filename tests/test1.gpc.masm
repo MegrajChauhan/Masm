@@ -6,7 +6,7 @@
 
 define VERSION 123 ; A constant is replaced anytime it is seen in the file
 
-count: db -1 ; defining a byte sized variable
+count: db 1 ; defining a byte sized variable
 hello: dq VERSION
 numbers: resb 10 ; define an array of bytes of length 10 
 ; yooo: resw -10
@@ -19,6 +19,13 @@ name: ds "
 ;surname: ds 7823789
 ;test: db 32
 test: dq 1244
+
+byte_type_variable: db 0
+word_type_variable: dw 1
+dword_type_variable: dd 2
+qword_type_variable: dq 3
+float_type_variable: df 4
+long_float_type_variable: dlf 5
 
 ; The assembly strictly adheres to the ISA of a core.
 ; Unlike native assemblers such as NASM where the assembler intelligently translates:
@@ -330,7 +337,7 @@ tmp:
  
  ; Just insert the keyword 'atm' in front of loadX and storeX for atomic operation
  lea r0, r1, r2, r3 ; r0 = r1 + r2*r3 -> dest = base + index * scale 
- cmpxchg r0, r1, name ; cmpxchg desired, expected, variable -> if (variable == expected) variable = desired
+ cmpxchg r0, r1, count ; cmpxchg desired, expected, variable -> if (variable == expected) variable = desired
  cmpxchg r0, r1, r2 ; The variable address is in r2
 
  cflags
