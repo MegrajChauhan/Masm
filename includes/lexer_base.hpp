@@ -293,6 +293,7 @@ static std::unordered_map<std::string, token_t> map = {
     {"retno", TOKEN_RETNO},
     {"retnn", TOKEN_RETNN},
     {"retn", TOKEN_RETN},
+    {"reto", TOKEN_RETO},
     {"retng", TOKEN_RETNG},
     {"retg", TOKEN_RETG},
     {"retns", TOKEN_RETNS},

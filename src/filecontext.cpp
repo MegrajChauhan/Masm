@@ -146,7 +146,7 @@ bool masm::FileContext::file_process_GPC(std::filesystem::path working_path) {
   }
 
   GPCAnalyzer analyzer(std::move(nodes), CONSTANTS, LABELS, symtable);
-  if (!analyzer.analyze()) {
+  if (analyzer.analyze()) {
     simple_message("While processing %s", working_path.c_str());
     return false;
   }

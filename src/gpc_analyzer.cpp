@@ -282,12 +282,14 @@ bool masm::GPCAnalyzer::second_loop() {
 
         if (c.first) {
           // Indeed a constant
+          n.len = 2;
           ri->immediate = c.second.second;
           ri->type = c.second.first;
         } else {
           // Not a constant but could be a variable
           if (resolve_variable(ri->immediate, {BYTE, WORD, DWORD, QWORD})) {
             ri->is_var = true;
+            n.len = 1;
           } else {
             detailed_message(n.file.c_str(), n.line,
                              "Unknwon IMMEDIATE value type: Not a constant and "
@@ -311,12 +313,18 @@ bool masm::GPCAnalyzer::second_loop() {
       if (ri->type == VALUE_IDEN) {
         if (resolve_variable(ri->immediate, {FLOAT})) {
           ri->is_var = true;
+          n.len = 1;
         } else {
           detailed_message(
               n.file.c_str(), n.line,
               "Expected VARIABLE as operand but got something else.", NULL);
           return false;
         }
+      } else {
+        detailed_message(n.file.c_str(), n.line,
+                         "Expected VARIABLE as operand but got something else.",
+                         NULL);
+        return false;
       }
       break;
     }
@@ -348,11 +356,12 @@ bool masm::GPCAnalyzer::second_loop() {
         std::pair<bool, std::pair<masm::value_t, std::string>> c =
             resolve_if_constant(
                 ri->immediate,
-                f ? std::array<value_t, 4>{VALUE_FLOAT}
-                  : std::array<value_t, 4>(
+                f ? std::vector<value_t>{VALUE_FLOAT}
+                  : std::vector<value_t>(
                         {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_OCTAL}));
 
         if (c.first) {
+          n.len = 2;
           ri->immediate = c.second.second;
           ri->type = c.second.first;
         } else {
@@ -464,6 +473,10 @@ bool masm::GPCAnalyzer::second_loop() {
     case NODE_STORESW:
     case NODE_STORESD:
     case NODE_STORESQ:
+      if (!analyze_instructions_with_only_const_imm(
+              n, {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_OCTAL}))
+        return false;
+      break;
     case NODE_AND_IMM:
     case NODE_OR_IMM:
     case NODE_XOR_IMM:
@@ -471,14 +484,15 @@ bool masm::GPCAnalyzer::second_loop() {
     case NODE_SHR_IMM:
       if (!analyze_instructions_with_only_const_imm(
               n, {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_OCTAL}))
-        return false;
+        n.len = 2;
+      return false;
       break;
     case NODE_SOUT_IMM:
     case NODE_SIN_IMM: {
       NodeImm *i = (NodeImm *)n.node.get();
       if (!symtable.symbol_exists(i->imm)) {
         detailed_message(n.file.c_str(), n.line,
-                         "This variable doesn't exists.", NULL);
+                         "This variable doesn't exists '%s'.", i->imm.c_str());
         return false;
       }
       break;
@@ -535,7 +549,7 @@ bool masm::GPCAnalyzer::second_loop() {
 
 std::pair<bool, std::pair<masm::value_t, std::string>>
 masm::GPCAnalyzer::resolve_if_constant(std::string name,
-                                       std::array<value_t, 4> expected) {
+                                       std::vector<value_t> expected) {
   std::unordered_map<std::string, std::pair<value_t, std::string>>::iterator
       res = consts.find(name);
   if (res == consts.end())
@@ -559,7 +573,7 @@ bool masm::GPCAnalyzer::resolve_variable(std::string name,
 }
 
 bool masm::GPCAnalyzer::analyze_stack_based_instructions(
-    Node &n, data_t expected, std::array<value_t, 4> vtlist) {
+    Node &n, data_t expected, std::vector<value_t> vtlist) {
   NodeImm *imm = (NodeImm *)n.node.get();
   if (imm->type == VALUE_IDEN) {
     if (resolve_variable(imm->imm, {expected})) {
@@ -575,8 +589,22 @@ bool masm::GPCAnalyzer::analyze_stack_based_instructions(
       } else {
         imm->imm = res.second.second;
         imm->type = res.second.first;
+        n.len = 2;
       }
     }
+  }
+  switch (n.type) {
+  case NODE_POPB_IMM:
+  case NODE_POPW_IMM:
+  case NODE_POPD_IMM:
+  case NODE_POPQ_IMM:
+    if (!imm->is_var) {
+      detailed_message(n.file.c_str(), n.line,
+                       "Invalid Operand For Instruction", NULL);
+      return false;
+    }
+  default:
+    break;
   }
   return true;
 }
@@ -593,12 +621,17 @@ bool masm::GPCAnalyzer::analyze_load_store_instructions(Node &n,
                        "Invalid Operand For Instruction", NULL);
       return false;
     }
+  } else {
+    detailed_message(
+        n.file.c_str(), n.line,
+        "Instruction doesn't accept anything other than a variable.", NULL);
+    return false;
   }
   return true;
 }
 
 bool masm::GPCAnalyzer::analyze_instructions_with_only_const_imm(
-    Node &n, std::array<value_t, 4> expected) {
+    Node &n, std::vector<value_t> expected) {
   NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
   if (imm->type == VALUE_IDEN) {
     std::pair<bool, std::pair<masm::value_t, std::string>> res =

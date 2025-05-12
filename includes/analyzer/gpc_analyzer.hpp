@@ -40,18 +40,17 @@ public:
   bool validate_reserved_variables(Node &n);
 
   std::pair<bool, std::pair<value_t, std::string>>
-  resolve_if_constant(std::string name, std::array<value_t, 4> expected);
+  resolve_if_constant(std::string name, std::vector<value_t> expected);
 
   bool resolve_variable(std::string name, std::array<data_t, 4> expected);
 
   bool analyze_stack_based_instructions(Node &n, data_t expected,
-                                        std::array<value_t, 4> vtlist);
+                                        std::vector<value_t> vtlist);
 
   bool analyze_load_store_instructions(Node &n, data_t expected);
 
-  bool
-  analyze_instructions_with_only_const_imm(Node &n,
-                                           std::array<value_t, 4> expected);
+  bool analyze_instructions_with_only_const_imm(Node &n,
+                                                std::vector<value_t> expected);
 };
 }; // namespace masm
 

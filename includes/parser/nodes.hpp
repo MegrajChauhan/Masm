@@ -320,6 +320,7 @@ struct NodeCMPXCHGReg : public NodeBase {
 };
 
 struct Node {
+  size_t len = 1;
   node_t type;
   size_t line;
   std::filesystem::path file;

@@ -62,7 +62,7 @@ bool masm::GPCGen::first_iteration() {
     case NODE_RESLF:
       break;
     default:
-      i += 8;
+      i += n.len * 8;
     }
   }
   for (Node &n : final_nodes) {
@@ -638,6 +638,98 @@ bool masm::GPCGen::second_iteration() {
                                  token_to_regr(rr->r2));
       break;
     }
+    case NODE_AND_REGR: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_AND_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_OR_REGR: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_OR_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_XOR_REGR: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_XOR_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_SHL_REGR: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_LSHIFT_REGR, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_SHR_REGR: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_RSHIFT_REGR, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_FCMP: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_FCMP, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_FCMP32: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_FCMP32, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_LOADB_REG: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_LOADB_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_LOADW_REG: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_LOADW_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_LOADD_REG: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_LOADD_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_LOADQ_REG: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_LOADQ_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_STOREB_REG: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_STOREB_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_STOREW_REG: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_STOREW_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_STORED_REG: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_STORED_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+    case NODE_STOREQ_REG: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_STOREQ_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
+      // INST WITH ONE IMMEDIATE
+      // INST WITH ONE REGR AND IMMEDIATE
     }
   }
 
