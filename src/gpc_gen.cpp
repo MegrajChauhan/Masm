@@ -728,6 +728,98 @@ bool masm::GPCGen::second_iteration() {
                                  token_to_regr(rr->r2));
       break;
     }
+    case NODE_JMP_IMM: {
+      instructions_with_one_immediate(OP_JMP_ADDR, n, 0, true);
+      break;
+    }
+    case NODE_WHDLR: {
+      instructions_with_one_immediate(OP_WHDLR, n, 0, true);
+      break;
+    }
+    case NODE_CALL_IMM: {
+      instructions_with_one_immediate(OP_CALL, n, 0, true);
+      break;
+    }
+    case NODE_JNZ: {
+      instructions_with_one_immediate(OP_JNZ, n, 0, true);
+      break;
+    }
+    case NODE_JZ: {
+      instructions_with_one_immediate(OP_JZ, n, 0, true);
+      break;
+    }
+    case NODE_JNE: {
+      instructions_with_one_immediate(OP_JNE, n, 0, true);
+      break;
+    }
+    case NODE_JE: {
+      instructions_with_one_immediate(OP_JE, n, 0, true);
+      break;
+    }
+    case NODE_JNC: {
+      instructions_with_one_immediate(OP_JNC, n, 0, true);
+      break;
+    }
+    case NODE_JC: {
+      instructions_with_one_immediate(OP_JC, n, 0, true);
+      break;
+    }
+    case NODE_JNO: {
+      instructions_with_one_immediate(OP_JNO, n, 0, true);
+      break;
+    }
+    case NODE_JO: {
+      instructions_with_one_immediate(OP_JO, n, 0, true);
+      break;
+    }
+    case NODE_JNN: {
+      instructions_with_one_immediate(OP_JNN, n, 0, true);
+      break;
+    }
+    case NODE_JN: {
+      instructions_with_one_immediate(OP_JN, n, 0, true);
+      break;
+    }
+    case NODE_JNG: {
+      instructions_with_one_immediate(OP_JNG, n, 0, true);
+      break;
+    }
+    case NODE_JG: {
+      instructions_with_one_immediate(OP_JG, n, 0, true);
+      break;
+    }
+    case NODE_JNS: {
+      instructions_with_one_immediate(OP_JNS, n, 0, true);
+      break;
+    }
+    case NODE_JS: {
+      instructions_with_one_immediate(OP_JS, n, 0, true);
+      break;
+    }
+    case NODE_JGE: {
+      instructions_with_one_immediate(OP_JGE, n, 0, true);
+      break;
+    }
+    case NODE_JSE: {
+      instructions_with_one_immediate(OP_JSE, n, 0, true);
+      break;
+    }
+    case NODE_PUSHB: {
+      instructions_with_one_immediate(OP_PUSH_MEMB, n, 0, false, OP_PUSH_IMM8);
+      break;
+    }
+    case NODE_PUSHW: {
+      instructions_with_one_immediate(OP_PUSH_MEMW, n, 0, false, OP_PUSH_IMM16);
+      break;
+    }
+    case NODE_PUSHD: {
+      instructions_with_one_immediate(OP_PUSH_MEMD, n, 0, false, OP_PUSH_IMM32);
+      break;
+    }
+    case NODE_PUSHQ: {
+      instructions_with_one_immediate(OP_PUSH_MEMQ, n, 0, false, OP_PUSH_IMM64);
+      break;
+    }
       // INST WITH ONE IMMEDIATE
       // INST WITH ONE REGR AND IMMEDIATE
     }
@@ -873,4 +965,133 @@ void masm::GPCGen::instructions_with_two_regr(uint8_t opcode, uint8_t reg1,
   i.bytes.b0 = opcode;
   i.bytes.b6 = reg1;
   i.bytes.b7 = reg2;
+}
+
+void masm::GPCGen::instructions_with_one_immediate(uint8_t opcode, Node &n,
+                                                   size_t len, bool label,
+                                                   uint8_t op2) {
+  NodeImm *imm = (NodeImm *)n.node.get();
+  Inst64 inst;
+  inst.bytes.b0 = opcode;
+  if (imm->is_var) {
+    std::unordered_map<std::string, uint64_t>::iterator i;
+    if (!label) {
+      i = data_addresses.find(imm->imm);
+      // i should be valid since analyzer already analyzed the
+    } else {
+      i = label_addresses.find(imm->imm);
+    }
+    inst.whole_word &= (0xFFFF000000000000 | i->second);
+  } else {
+    inst.bytes.b0 = op2;
+    instructions.push_back(inst);
+    Inst64 val;
+    std::string value = imm->imm;
+    switch (imm->type) {
+    case VALUE_HEX: {
+      val.whole_word = std::strtoull(value.c_str(), NULL, 16);
+      break;
+    }
+    case VALUE_OCTAL: {
+      val.whole_word = std::strtoull(value.c_str(), NULL, 8);
+      break;
+    }
+    case VALUE_BINARY: {
+      val.whole_word = std::strtoull(value.c_str(), NULL, 2);
+      break;
+    }
+    case VALUE_INTEGER: {
+      val.whole_word = std::strtoull(value.c_str(), NULL, 10);
+      break;
+    }
+    case VALUE_FLOAT: {
+      if (len == 8) {
+        union {
+          double d;
+          uint64_t i;
+        } fl;
+        fl.d = std::strtod(value.c_str(), NULL);
+        val.whole_word = fl.i;
+      } else {
+        union {
+          float d;
+          uint32_t i;
+        } fl;
+        fl.d = std::strtof(value.c_str(), NULL);
+        val.whole_word = fl.i;
+      }
+      break;
+    }
+    }
+    inst = val;
+  }
+  instructions.push_back(inst);
+}
+
+void masm::GPCGen::jmp_instructions(Node &n) {}
+
+void masm::GPCGen::stack_based_instructions(Node &n) {}
+
+void masm::GPCGen::sin_and_sout_instructions(Node &n) {
+  NodeImm *i = (NodeImm *)n.node.get();
+  uint8_t op = n.type == NODE_SIN_IMM ? OP_SIN : OP_SOUT;
+  single_operand_which_is_variable(op, i->imm);
+}
+
+void masm::GPCGen::single_operand_which_is_variable(uint8_t opcode,
+                                                    std::string name) {
+  auto var = data_addresses.find(name);
+  if (var == data_addresses.end()) {
+    var = label_addresses.find(name); // This shouldn't fail
+  }
+  Inst64 i;
+  i.bytes.b0 = opcode;
+  i.whole_word &= (0xFF00000000000000 | (var->second & 0xFFFFFFFFFFFF));
+  instructions.push_back(i);
+}
+
+void masm::GPCGen::single_operand_which_is_immediate(uint8_t opcode,
+                                                     std::string value,
+                                                     value_t type, size_t len) {
+  Inst64 val;
+  switch (type) {
+  case VALUE_HEX: {
+    val.whole_word = std::strtoull(value.c_str(), NULL, 16);
+    break;
+  }
+  case VALUE_OCTAL: {
+    val.whole_word = std::strtoull(value.c_str(), NULL, 8);
+    break;
+  }
+  case VALUE_BINARY: {
+    val.whole_word = std::strtoull(value.c_str(), NULL, 2);
+    break;
+  }
+  case VALUE_INTEGER: {
+    val.whole_word = std::strtoull(value.c_str(), NULL, 10);
+    break;
+  }
+  case VALUE_FLOAT: {
+    if (len == 8) {
+      union {
+        double d;
+        uint64_t i;
+      } fl;
+      fl.d = std::strtod(value.c_str(), NULL);
+      val.whole_word = fl.i;
+    } else {
+      union {
+        float d;
+        uint32_t i;
+      } fl;
+      fl.d = std::strtof(value.c_str(), NULL);
+      val.whole_word = fl.i;
+    }
+    break;
+  }
+  }
+  Inst64 i;
+  i.bytes.b0 = opcode;
+  instructions.push_back(i);
+  instructions.push_back(val);
 }
