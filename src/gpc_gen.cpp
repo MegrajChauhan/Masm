@@ -805,23 +805,321 @@ bool masm::GPCGen::second_iteration() {
       break;
     }
     case NODE_PUSHB: {
-      instructions_with_one_immediate(OP_PUSH_MEMB, n, 0, false, OP_PUSH_IMM8);
+      NodeImm *imm = (NodeImm *)n.node.get();
+      if (imm->is_var)
+        single_operand_which_is_variable(OP_PUSH_MEMB, imm->imm);
+      else
+        single_operand_which_is_immediate(OP_PUSH_IMM8, imm->imm, imm->type, 1);
       break;
     }
     case NODE_PUSHW: {
-      instructions_with_one_immediate(OP_PUSH_MEMW, n, 0, false, OP_PUSH_IMM16);
+      NodeImm *imm = (NodeImm *)n.node.get();
+      if (imm->is_var)
+        single_operand_which_is_variable(OP_PUSH_MEMW, imm->imm);
+      else
+        single_operand_which_is_immediate(OP_PUSH_IMM16, imm->imm, imm->type,
+                                          2);
       break;
     }
     case NODE_PUSHD: {
-      instructions_with_one_immediate(OP_PUSH_MEMD, n, 0, false, OP_PUSH_IMM32);
+      NodeImm *imm = (NodeImm *)n.node.get();
+      if (imm->is_var)
+        single_operand_which_is_variable(OP_PUSH_MEMD, imm->imm);
+      else
+        single_operand_which_is_immediate(OP_PUSH_IMM32, imm->imm, imm->type,
+                                          4);
       break;
     }
     case NODE_PUSHQ: {
-      instructions_with_one_immediate(OP_PUSH_MEMQ, n, 0, false, OP_PUSH_IMM64);
+      NodeImm *imm = (NodeImm *)n.node.get();
+      if (imm->is_var)
+        single_operand_which_is_variable(OP_PUSH_MEMQ, imm->imm);
+      else
+        single_operand_which_is_immediate(OP_PUSH_IMM64, imm->imm, imm->type,
+                                          8);
       break;
     }
-      // INST WITH ONE IMMEDIATE
+    case NODE_POPB_IMM: {
+      NodeImm *imm = (NodeImm *)n.node.get();
+      single_operand_which_is_variable(OP_POP_MEMB, imm->imm);
+      break;
+    }
+    case NODE_POPW_IMM: {
+      NodeImm *imm = (NodeImm *)n.node.get();
+      single_operand_which_is_variable(OP_POP_MEMW, imm->imm);
+      break;
+    }
+    case NODE_POPD_IMM: {
+      NodeImm *imm = (NodeImm *)n.node.get();
+      single_operand_which_is_variable(OP_POP_MEMD, imm->imm);
+      break;
+    }
+    case NODE_POPQ_IMM: {
+      NodeImm *imm = (NodeImm *)n.node.get();
+      single_operand_which_is_variable(OP_POP_MEMQ, imm->imm);
+      break;
+    }
+    case NODE_SIN_IMM:
+    case NODE_SOUT_IMM:
+      sin_and_sout_instructions(n);
+      break;
       // INST WITH ONE REGR AND IMMEDIATE
+    case NODE_ADD_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      if (imm->is_var)
+        choose_opcode_according_to_variable(
+            imm, {OP_ADD_MEMB, OP_ADD_MEMW, OP_ADD_MEMD, OP_ADD_MEMQ});
+      else
+        two_operand_second_is_immediate(OP_ADD_IMM, imm->immediate, imm->type,
+                                        8, imm->regr);
+      break;
+    }
+    case NODE_SUB_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      if (imm->is_var)
+        choose_opcode_according_to_variable(
+            imm, {OP_SUB_MEMB, OP_SUB_MEMW, OP_SUB_MEMD, OP_SUB_MEMQ});
+      else
+        two_operand_second_is_immediate(OP_SUB_IMM, imm->immediate, imm->type,
+                                        8, imm->regr);
+      break;
+    }
+    case NODE_MUL_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      if (imm->is_var)
+        choose_opcode_according_to_variable(
+            imm, {OP_MUL_MEMB, OP_MUL_MEMW, OP_MUL_MEMD, OP_MUL_MEMQ});
+      else
+        two_operand_second_is_immediate(OP_MUL_IMM, imm->immediate, imm->type,
+                                        8, imm->regr);
+      break;
+    }
+    case NODE_DIV_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      if (imm->is_var)
+        choose_opcode_according_to_variable(
+            imm, {OP_DIV_MEMB, OP_DIV_MEMW, OP_DIV_MEMD, OP_DIV_MEMQ});
+      else
+        two_operand_second_is_immediate(OP_DIV_IMM, imm->immediate, imm->type,
+                                        8, imm->regr);
+      break;
+    }
+    case NODE_MOD_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      if (imm->is_var)
+        choose_opcode_according_to_variable(
+            imm, {OP_MOD_MEMB, OP_MOD_MEMW, OP_MOD_MEMD, OP_MOD_MEMQ});
+      else
+        two_operand_second_is_immediate(OP_MOD_IMM, imm->immediate, imm->type,
+                                        8, imm->regr);
+      break;
+    }
+    case NODE_IADD_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_IADD_IMM, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_ISUB_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_ISUB_IMM, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_IMUL_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_IMUL_IMM, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_IDIV_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_IDIV_IMM, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_IMOD_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_IMOD_IMM, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_FADD32_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_FADD32_MEM});
+      break;
+    }
+    case NODE_FSUB32_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_FSUB32_MEM});
+      break;
+    }
+    case NODE_FMUL32_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_FMUL32_MEM});
+      break;
+    }
+    case NODE_FDIV32_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_FDIV32_MEM});
+      break;
+    }
+    case NODE_FADD_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_FADD_MEM});
+      break;
+    }
+    case NODE_FSUB_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_FSUB_MEM});
+      break;
+    }
+    case NODE_FMUL_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_FMUL_MEM});
+      break;
+    }
+    case NODE_FDIV_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_FDIV_MEM});
+      break;
+    }
+    case NODE_MOV: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVE_IMM_64, imm->immediate, imm->type,
+                                      8, imm->regr);
+      break;
+    }
+    case NODE_MOVF32: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVE_IMM_64, imm->immediate, imm->type,
+                                      4, imm->regr);
+      break;
+    }
+    case NODE_MOVF: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVE_IMM_64, imm->immediate, imm->type,
+                                      8, imm->regr);
+      break;
+    }
+    case NODE_MOVSXB_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      movesxX(OP_MOVESX_IMM8, imm->regr, imm->immediate, imm->type, 1);
+      break;
+    }
+    case NODE_MOVSXW_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      movesxX(OP_MOVESX_IMM16, imm->regr, imm->immediate, imm->type, 2);
+      break;
+    }
+    case NODE_MOVSXD_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      movesxX(OP_MOVESX_IMM32, imm->regr, imm->immediate, imm->type, 4);
+      break;
+    }
+    case NODE_MOVNZ: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVNZ, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVZ: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVZ, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVNE: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVNE, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVE: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVE, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVNC: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVNC, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVC: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVC, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVNO: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVNO, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVO: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVO, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVNN: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVNN, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVN: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVN, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVNG: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVNG, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVG: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVG, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVNS: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVNS, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVS: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVS, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVGE: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVGE, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_MOVSE: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_MOVSE, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_LOOP: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      auto label = label_addresses.find(imm->immediate);
+    }
+    default:
+      simple_message("Unknown NODE %d %zu", n.type, n.line);
+      break;
     }
   }
 
@@ -1028,10 +1326,6 @@ void masm::GPCGen::instructions_with_one_immediate(uint8_t opcode, Node &n,
   instructions.push_back(inst);
 }
 
-void masm::GPCGen::jmp_instructions(Node &n) {}
-
-void masm::GPCGen::stack_based_instructions(Node &n) {}
-
 void masm::GPCGen::sin_and_sout_instructions(Node &n) {
   NodeImm *i = (NodeImm *)n.node.get();
   uint8_t op = n.type == NODE_SIN_IMM ? OP_SIN : OP_SOUT;
@@ -1056,19 +1350,19 @@ void masm::GPCGen::single_operand_which_is_immediate(uint8_t opcode,
   Inst64 val;
   switch (type) {
   case VALUE_HEX: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 16);
+    val.whole_word = std::strtoull(value.c_str(), NULL, 16) & len * 8;
     break;
   }
   case VALUE_OCTAL: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 8);
+    val.whole_word = std::strtoull(value.c_str(), NULL, 8) & len * 8;
     break;
   }
   case VALUE_BINARY: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 2);
+    val.whole_word = std::strtoull(value.c_str(), NULL, 2) & len * 8;
     break;
   }
   case VALUE_INTEGER: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 10);
+    val.whole_word = std::strtoull(value.c_str(), NULL, 10) & len * 8;
     break;
   }
   case VALUE_FLOAT: {
@@ -1089,9 +1383,130 @@ void masm::GPCGen::single_operand_which_is_immediate(uint8_t opcode,
     }
     break;
   }
+  default:
+    return;
   }
   Inst64 i;
   i.bytes.b0 = opcode;
   instructions.push_back(i);
   instructions.push_back(val);
+}
+
+void masm::GPCGen::two_operand_second_is_immediate(uint8_t opcode,
+                                                   std::string value,
+                                                   value_t type, size_t len,
+                                                   token_t reg1) {
+  Inst64 val;
+  switch (type) {
+  case VALUE_HEX: {
+    val.whole_word = std::strtoull(value.c_str(), NULL, 16) & len * 8;
+    break;
+  }
+  case VALUE_OCTAL: {
+    val.whole_word = std::strtoull(value.c_str(), NULL, 8) & len * 8;
+    break;
+  }
+  case VALUE_BINARY: {
+    val.whole_word = std::strtoull(value.c_str(), NULL, 2) & len * 8;
+    break;
+  }
+  case VALUE_INTEGER: {
+    val.whole_word = std::strtoull(value.c_str(), NULL, 10) & len * 8;
+    break;
+  }
+  case VALUE_FLOAT: {
+    if (len == 8) {
+      union {
+        double d;
+        uint64_t i;
+      } fl;
+      fl.d = std::strtod(value.c_str(), NULL);
+      val.whole_word = fl.i;
+    } else {
+      union {
+        float d;
+        uint32_t i;
+      } fl;
+      fl.d = std::strtof(value.c_str(), NULL);
+      val.whole_word = fl.i;
+    }
+    break;
+  }
+  default:
+    return;
+  }
+  Inst64 i;
+  i.bytes.b0 = opcode;
+  i.bytes.b7 = token_to_regr(reg1);
+  instructions.push_back(i);
+  instructions.push_back(val);
+}
+
+void masm::GPCGen::choose_opcode_according_to_variable(
+    NodeRegrImm *n, std::vector<uint8_t> opcodes) {
+  std::unordered_map<std::string, Symbol>::iterator iter =
+      symtable.find_symbol(n->immediate);
+  auto address = data_addresses.find(n->immediate);
+  Inst64 i;
+  i.bytes.b1 = token_to_regr(n->regr);
+  switch (iter->second.type) {
+  case BYTE:
+  case STRING:
+  case RESB: {
+    i.bytes.b0 = opcodes[0];
+    break;
+  }
+  case WORD:
+  case RESW: {
+    i.bytes.b0 = opcodes[1];
+    break;
+  }
+  case DWORD:
+  case RESD: {
+    i.bytes.b0 = opcodes[2];
+    break;
+  }
+  case QWORD:
+  case RESQ: {
+    i.bytes.b0 = opcodes[3];
+    break;
+  }
+  case FLOAT: {
+    i.bytes.b0 = opcodes[0];
+  }
+  default:
+    break;
+  }
+  i.whole_word |= (0xFFFF000000000000 | (address->second & 0xFFFFFFFFFFFF));
+  instructions.push_back(i);
+}
+
+void masm::GPCGen::movesxX(uint8_t opcode, token_t regr, std::string imm,
+                           value_t type, size_t len) {
+  Inst64 i;
+  Data64 val;
+  i.bytes.b0 = opcode;
+  i.bytes.b1 = token_to_regr(regr);
+  switch (type) {
+  case VALUE_HEX: {
+    val.whole_word = std::strtoull(imm.c_str(), NULL, 16);
+    break;
+  }
+  case VALUE_OCTAL: {
+    val.whole_word = std::strtoull(imm.c_str(), NULL, 8);
+    break;
+  }
+  case VALUE_BINARY: {
+    val.whole_word = std::strtoull(imm.c_str(), NULL, 2);
+    break;
+  }
+  case VALUE_INTEGER: {
+    val.whole_word = std::strtoull(imm.c_str(), NULL, 10);
+    break;
+  }
+  default:
+    return;
+  }
+  i.half_words.w1 = val.whole_word & (8 * len);
+  instructions.push_back(i);
 }

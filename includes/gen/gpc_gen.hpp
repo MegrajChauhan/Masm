@@ -52,16 +52,21 @@ public:
   void instructions_with_one_immediate(uint8_t opcode, Node &n, size_t len,
                                        bool label = false, uint8_t op2 = 0);
 
-  void jmp_instructions(Node &n);
-
-  void stack_based_instructions(Node &n);
-
   void sin_and_sout_instructions(Node &n);
 
   void single_operand_which_is_variable(uint8_t opcode, std::string name);
 
   void single_operand_which_is_immediate(uint8_t opcode, std::string value,
                                          value_t type, size_t len);
+
+  void choose_opcode_according_to_variable(NodeRegrImm *n,
+                                           std::vector<uint8_t> opcodes);
+
+  void two_operand_second_is_immediate(uint8_t opcode, std::string value,
+                                       value_t type, size_t len, token_t reg1);
+
+  void movesxX(uint8_t opcode, token_t regr, std::string imm, value_t type,
+               size_t len);
 };
 }; // namespace masm
 
