@@ -95,7 +95,7 @@ public:
 
   bool gen_file_first_step_third_phase(uint64_t addr);
 
-  bool gen_file_second_step(uint64_t addr);
+  bool gen_file_second_step();
 
   bool file_includes_another_file(Node &node);
 

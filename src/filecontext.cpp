@@ -155,14 +155,18 @@ bool masm::FileContext::gen_file_first_step() {
 }
 
 bool masm::FileContext::gen_file_first_step_second_phase(uint64_t addr) {
-  return gen.first_iteration_second_phase(addr);
+  bool ret = gen.first_iteration_second_phase(addr);
+  d_addr = gen.get_current_address_point();
+  return ret;
 }
 
 bool masm::FileContext::gen_file_first_step_third_phase(uint64_t addr) {
-  return gen.first_iteration_third_phase(addr);
+  bool ret = gen.first_iteration_third_phase(addr);
+  d_addr = gen.get_current_address_point();
+  return ret;
 }
 
-bool masm::FileContext::gen_file_second_step(uint64_t addr) {
+bool masm::FileContext::gen_file_second_step() {
   return gen.second_iteration();
 }
 
@@ -175,7 +179,7 @@ std::vector<uint8_t> masm::FileContext::get_data() { return gen.get_data(); }
 bool masm::FileContext::file_includes_another_file(Node &node) {
   NodeIncDir *dir = (NodeIncDir *)node.node.get();
   FileContext child(include_paths, CONSTANTS, LABELS, symtable, label_addresses,
-                    data_addresses, d_addr);
+                    data_addresses, data, string, d_addr);
 
   if (!child.file_prepare(dir->path_included)) {
     simple_message("While processing file %s...", wp.c_str());
