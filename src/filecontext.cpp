@@ -1,7 +1,17 @@
 #include <filecontext.hpp>
 
-masm::FileContext::FileContext(std::vector<std::filesystem::path> &i_paths)
-    : include_paths{i_paths} {}
+masm::FileContext::FileContext(
+    std::vector<std::filesystem::path> &i_paths,
+    std::unordered_map<std::string, std::pair<value_t, std::string>> &C,
+    std::unordered_set<std::string> &L, SymbolTable &sym,
+    std::unordered_map<std::string, uint64_t> &laddr,
+    std::unordered_map<std::string, uint64_t> &daddr, std::vector<uint8_t> &D,
+    std::vector<uint8_t> &S, uint64_t d_addr)
+    : CONSTANTS(C), LABELS(L), symtable(sym), label_addresses(laddr),
+      data_addresses(daddr), include_paths(i_paths), data(D), string(S),
+      analyzer(C, L, sym), gen(sym, laddr, daddr, D, S, d_addr) {
+  this->d_addr = d_addr;
+}
 
 bool masm::FileContext::is_file_a_directory(std::filesystem::path path) {
   return std::filesystem::is_directory(path);
@@ -38,51 +48,26 @@ bool masm::FileContext::file_already_imported(std::filesystem::path path) {
   return imports.find(path) != imports.end();
 }
 
-std::unordered_map<std::string, std::pair<masm::value_t, std::string>>
-masm::FileContext::get_CONSTANTS() {
-  return std::move(CONSTANTS);
-}
-
-std::unordered_set<std::string> masm::FileContext::get_LABELS() {
-  return std::move(LABELS);
-}
-
 std::unordered_set<std::filesystem::path> masm::FileContext::get_imports() {
   return std::move(imports);
-}
-
-masm::SymbolTable masm::FileContext::get_symtable() {
-  return std::move(symtable);
 }
 
 std::vector<masm::Node> masm::FileContext::get_nodes() {
   return std::move(nodes);
 }
 
-void masm::FileContext::set_CONSTANTS(
-    std::unordered_map<std::string, std::pair<value_t, std::string>>
-        &&constants) {
-  CONSTANTS = std::move(constants);
-}
-
-void masm::FileContext::set_LABELS(std::unordered_set<std::string> &&labels) {
-  LABELS = std::move(labels);
-}
+uint64_t masm::FileContext::get_d_addr() { return d_addr; }
 
 void masm::FileContext::set_imports(
     std::unordered_set<std::filesystem::path> &&f) {
   imports = std::move(f);
 }
 
-void masm::FileContext::set_symtable(SymbolTable &&table) {
-  symtable = std::move(table);
-}
-
 void masm::FileContext::set_nodes(std::vector<Node> &&n) {
   nodes = std::move(n);
 }
 
-bool masm::FileContext::file_process(std::string input_file) {
+bool masm::FileContext::file_prepare(std::string input_file) {
   std::filesystem::path working_path = input_file;
   std::pair<bool, size_t> child_of = find_the_parent_directory(working_path);
   if (!child_of.first) {
@@ -101,78 +86,127 @@ bool masm::FileContext::file_process(std::string input_file) {
   }
   if (!deduce_file_type(working_path))
     return false;
-  if (file_already_imported(working_path))
-    return true;
-  imports.insert(working_path);
-  switch (type) {
-  case GPC:
-    return file_process_GPC(working_path);
+  wp = working_path;
+  return true;
+}
+
+bool masm::FileContext::child_file_type_valid(file_t parent) {
+  return type == parent;
+}
+
+bool masm::FileContext::should_process_file() {
+  if (file_already_imported(wp))
+    return false;
+  return true;
+}
+
+bool masm::FileContext::parse_file() {
+
+  GPCParser parser(wp.string());
+
+  if (!parser.parse()) {
+    simple_message("While processing file %s...", wp.c_str());
+    return false;
   }
+
+  tmp = parser.getNodes();
 
   return true;
 }
 
-bool masm::FileContext::file_process_GPC(std::filesystem::path working_path) {
-  GPCParser parser(working_path.string());
-
-  if (!parser.parse())
-    return false;
-
-  std::vector<Node> N = parser.getNodes();
-
-  // Further process the nodes
-
-  for (Node &n : N) {
+bool masm::FileContext::pre_analysis() {
+  for (auto &n : tmp) {
     switch (n.type) {
-    case INCLUDE_DIR:
-      if (!file_includes_another_file(n)) {
-        simple_message("While processing %s", working_path.c_str());
+    case INCLUDE_DIR: {
+      if (!file_includes_another_file(n))
         return false;
-      }
-      break;
-    case CONST_DEF:
-      constant_definition(n);
-      break;
-    default:
-      nodes.push_back(std::move(n));
       break;
     }
-
-    // After all of that is done, we finally begin processing the
-    // file before preparing to emit binary code.
-    // Now, we will use dedicated handlers to take in 'nodes'.
-    // These handling agents will populate the symboltable table,
-    // check the code for syntax errors and perform other tasks.
+    case CONST_DEF: {
+      if (!constant_definition(n))
+        return false;
+      break;
+    }
+    default:
+      nodes.push_back(std::move(n));
+    }
   }
-
-  GPCAnalyzer analyzer(std::move(nodes), CONSTANTS, LABELS, symtable);
-  if (analyzer.analyze()) {
-    simple_message("While processing %s", working_path.c_str());
-    return false;
-  }
-  symtable.list_symbols();
   return true;
 }
+
+bool masm::FileContext::analyze_file_first_step() {
+  analyzer.set_nodes(std::move(nodes));
+  return analyzer.first_loop();
+}
+
+bool masm::FileContext::analyze_file_first_step_second_phase() {
+  return analyzer.first_loop_second_phase();
+}
+
+bool masm::FileContext::analyze_file_second_step() {
+  return analyzer.second_loop();
+}
+
+bool masm::FileContext::gen_file_first_step() {
+  gen.set_final_nodes(analyzer.get_result());
+  bool ret = gen.first_iteration();
+  d_addr = gen.get_current_address_point();
+  return ret;
+}
+
+bool masm::FileContext::gen_file_first_step_second_phase(uint64_t addr) {
+  return gen.first_iteration_second_phase(addr);
+}
+
+bool masm::FileContext::gen_file_first_step_third_phase(uint64_t addr) {
+  return gen.first_iteration_third_phase(addr);
+}
+
+bool masm::FileContext::gen_file_second_step(uint64_t addr) {
+  return gen.second_iteration();
+}
+
+std::vector<masm::Inst64> masm::FileContext::get_instructions() {
+  return gen.get_instructions();
+}
+
+std::vector<uint8_t> masm::FileContext::get_data() { return gen.get_data(); }
 
 bool masm::FileContext::file_includes_another_file(Node &node) {
   NodeIncDir *dir = (NodeIncDir *)node.node.get();
-  FileContext child(include_paths);
+  FileContext child(include_paths, CONSTANTS, LABELS, symtable, label_addresses,
+                    data_addresses, d_addr);
 
-  child.set_CONSTANTS(std::move(CONSTANTS));
-  child.set_LABELS(std::move(LABELS));
-  child.set_imports(std::move(imports));
-  child.set_symtable(std::move(symtable));
-  child.set_nodes(std::move(nodes));
-
-  if (!child.file_process(dir->path_included)) {
+  if (!child.file_prepare(dir->path_included)) {
+    simple_message("While processing file %s...", wp.c_str());
     return false;
   }
 
-  CONSTANTS = child.get_CONSTANTS();
-  LABELS = child.get_LABELS();
+  if (!child.should_process_file())
+    return true;
+
+  if (!child.child_file_type_valid(type)) {
+    detailed_message(wp.c_str(), node.line,
+                     "Included file is not of the same type as parent[%s].",
+                     dir->path_included.c_str());
+    return false;
+  }
+
+  imports.insert(wp);
+
+  child.set_imports(std::move(imports));
+  child.set_nodes(std::move(nodes));
+
+  if (!child.parse_file()) {
+    simple_message("While processing file %s...", wp.c_str());
+    return false;
+  }
+
+  // We do not want to do anything more than parsing at this point
+
   imports = child.get_imports();
-  symtable = child.get_symtable();
   nodes = child.get_nodes();
+  d_addr = child.get_d_addr();
 
   return true;
 }

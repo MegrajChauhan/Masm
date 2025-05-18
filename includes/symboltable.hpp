@@ -17,7 +17,19 @@ enum value_t {
   VALUE_IDEN
 };
 
-enum data_t { BYTE, WORD, DWORD, QWORD, FLOAT, STRING, RESB, RESW, RESD, RESQ };
+enum data_t {
+  BYTE,
+  WORD,
+  DWORD,
+  QWORD,
+  POINTER,
+  FLOAT,
+  STRING,
+  RESB,
+  RESW,
+  RESD,
+  RESQ
+};
 
 struct Symbol {
   data_t type;

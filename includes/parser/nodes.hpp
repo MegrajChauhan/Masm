@@ -8,13 +8,14 @@
 
 namespace masm {
 enum node_t {
-  INCLUDE_DIR,
+  INCLUDE_DIR = 0,
   CONST_DEF,
   // GPC
   NODE_DB,
   NODE_DW,
   NODE_DD,
   NODE_DQ,
+  NODE_DP,
   NODE_DS,
   NODE_DF,
   NODE_DLF,
@@ -22,11 +23,12 @@ enum node_t {
   NODE_RESW,
   NODE_RESD,
   NODE_RESQ,
+  NODE_RESP,
   NODE_RESF,
   NODE_RESLF,
   NODE_LABEL,
-  NODE_NOP,
-  NODE_HALT,
+  NODE_NOP,  // -
+  NODE_HALT, // -
   NODE_ADD_IMM,
   NODE_ADD_REGR,
   NODE_SUB_IMM,
@@ -78,17 +80,17 @@ enum node_t {
   NODE_NOT,
   NODE_CMP_IMM,
   NODE_CMP_REGR,
-  NODE_RET,
-  NODE_RETNZ,
-  NODE_RETZ,
-  NODE_RETNE,
-  NODE_RETE,
-  NODE_RETNC,
-  NODE_RETC,
-  NODE_RETNO,
-  NODE_RETO,
-  NODE_RETNN,
-  NODE_RETN,
+  NODE_RET,   // -
+  NODE_RETNZ, // -
+  NODE_RETZ,  // -
+  NODE_RETNE, // -
+  NODE_RETE,  // -
+  NODE_RETNC, // -
+  NODE_RETC,  // -
+  NODE_RETNO, // -
+  NODE_RETO,  // -
+  NODE_RETNN, // -
+  NODE_RETN,  // -
   NODE_RETNG,
   NODE_RETG,
   NODE_RETNS,
@@ -270,12 +272,14 @@ struct NodeDD : public NodeDB {};
 struct NodeDQ : public NodeDB {};
 struct NodeDS : public NodeDB {};
 struct NodeDF : public NodeDB {};
+struct NodeDP : public NodeDB {};
 
 struct NodeRESB : public NodeDB {};
 
 struct NodeRESW : public NodeRESB {};
 struct NodeRESD : public NodeRESB {};
 struct NodeRESQ : public NodeRESB {};
+struct NodeRESP : public NodeRESB {};
 struct NodeRESS : public NodeRESB {};
 struct NodeRESF : public NodeRESB {};
 

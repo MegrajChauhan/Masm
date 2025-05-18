@@ -40,96 +40,96 @@ main:
    ; OP REG, IMM
    ; OP REG, REG
    ; OP[LENGTH] REG, MEM_ADDR 
- nop
- hlt
- add r0, 1000
- sub r0, 1000
- mul r0, 1000
- div r0, 1000
- mod r0, 1000
+ nop ; L=1
+ hlt ; L=1
+ add r0, 1000 ; L=2
+ sub r0, 1000 ; L=2
+ mul r0, 1000 ; L=2
+ div r0, 1000 ; L=2
+ mod r0, 1000 ; L=2
 
- add r0, r1
- sub r0, r1
- mul r0, r1
- div r0, r1
- mod r0, r1
+ add r0, r1 ; L=1
+ sub r0, r1 ; L=1
+ mul r0, r1 ; L=1
+ div r0, r1 ; L=1
+ mod r0, r1 ; L=1
  
- iadd r0, 1000
- isub r0, 1000
- imul r0, 1000
- idiv r0, 1000
- imod r0, 1000
+ iadd r0, 1000 ; L=2
+ isub r0, 1000 ; L=2
+ imul r0, 1000 ; L=2
+ idiv r0, 1000 ; L=2
+ imod r1, 1000 ; L=2
 
- iadd r0, r1
- isub r0, r1
- imul r0, r1
- idiv r0, r1
- imod r0, r1
+ iadd r0, r1 ; L=1
+ isub r0, r1 ; L=1
+ imul r0, r1 ; L=1
+ idiv r0, r1 ; L=1
+ imod r0, r1 ; L=1
  
- fadd r0, r1
- fsub r0, r1
- fmul r0, r1
- fdiv r0, r1
+ fadd r0, r1 ; L=1
+ fsub r0, r1 ; L=1
+ fmul r0, r1 ; L=1
+ fdiv r0, r1 ; L=1
 
- fadd32 r0, r1
- fsub32 r0, r1
- fmul32 r0, r1
- fdiv32 r0, r1
+ fadd32 r0, r1 ; L=1
+ fsub32 r0, r1 ; L=1
+ fmul32 r0, r1 ; L=1
+ fdiv32 r0, r1 ; L=1
  
- add r0, byte_type_variable
- add r0, word_type_variable
- add r0, dword_type_variable
- add r0, qword_type_variable
+ add r0, byte_type_variable ; L=1
+ add r0, word_type_variable ; L=1
+ add r0, dword_type_variable ; L=1
+ add r0, qword_type_variable ; L=1
  
- sub r0, byte_type_variable
- sub r0, word_type_variable
- sub r0, dword_type_variable
- sub r0, qword_type_variable
+ sub r0, byte_type_variable ; L=1
+ sub r0, word_type_variable ; L=1
+ sub r0, dword_type_variable ; L=1
+ sub r0, qword_type_variable ; L=1
 
- mul r0, byte_type_variable
- mul r0, word_type_variable
- mul r0, dword_type_variable
- mul r0, qword_type_variable
+ mul r0, byte_type_variable ; L=1
+ mul r0, word_type_variable ; L=1
+ mul r0, dword_type_variable ; L=1
+ mul r0, qword_type_variable ; L=1
  
- div r0, byte_type_variable
- div r0, word_type_variable
- div r0, dword_type_variable
- div r0, qword_type_variable
+ div r0, byte_type_variable ; L=1
+ div r0, word_type_variable ; L=1
+ div r0, dword_type_variable ; L=1
+ div r0, qword_type_variable ; L=1
  
- mod r0, byte_type_variable
- mod r0, word_type_variable
- mod r0, dword_type_variable
- mod r0, qword_type_variable
+ mod r0, byte_type_variable ; L=1
+ mod r0, word_type_variable ; L=1
+ mod r0, dword_type_variable ; L=1
+ mod r0, qword_type_variable ; L=1
    
- fadd r0, long_float_type_variable 
- fsub r0, long_float_type_variable
- fmul r0, long_float_type_variable
- fdiv r0, long_float_type_variable
+ fadd r0, long_float_type_variable ; L=1 
+ fsub r0, long_float_type_variable ; L=1
+ fmul r0, long_float_type_variable ; L=1
+ fdiv r0, long_float_type_variable ; L=1
 
- fadd32 r0, float_type_variable 
- fsub32 r0, float_type_variable
- fmul32 r0, float_type_variable
- fdiv32 r0, float_type_variable
+ fadd32 r0, float_type_variable ; L=1 
+ fsub32 r0, float_type_variable ; L=1
+ fmul32 r0, float_type_variable ; L=1
+ fdiv32 r0, float_type_variable ; L=1
     
- inc r1
- dec r1
+ inc r1 ; L=1
+ dec r1 ; L=1
 
  ; ; Internal Data movement Instructions
  ; ; OP REG, IMM
  ; ; OP REG, REG
- mov r0, 0xaabbccddeeff0011
+ mov r0, 0xaabbccddeeff0011 ; L=2
  
- movb r0, r1
- movw r0, r1
- movd r0, r1
- movq r0, r1
+ movb r0, r1 ; L=1
+ movw r0, r1 ; L=1
+ movd r0, r1 ; L=1
+ movq r0, r1 ; L=1
  
- movf r0, 232.2323
- movf32 r0, 213231.112
+ movf r0, 232.2323 ; L=2
+ movf32 r0, 213231.112 ; L=2
 
- movsxb r0, 0xff 
- movsxw r0, 0xaa
- movsxd r0, 123
+ movsxb r0, 0xff ; L=1
+ movsxw r0, 0xaf ; L=1
+ movsxd r0, 123 ; L=1
  
  movsxb r0, r1 
  movsxw r0, r1

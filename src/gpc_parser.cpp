@@ -792,6 +792,7 @@ bool masm::GPCParser::handle_variable_defn(Lexer &lexer, Token name) {
   case TOKEN_DW:
   case TOKEN_DD:
   case TOKEN_DQ:
+  case TOKEN_DP:
     return handle_dX(lexer, name);
   case TOKEN_DS:
     return handle_ds(lexer, name);
@@ -802,6 +803,7 @@ bool masm::GPCParser::handle_variable_defn(Lexer &lexer, Token name) {
   case TOKEN_RESW:
   case TOKEN_RESD:
   case TOKEN_RESQ:
+  case TOKEN_RESP:
   case TOKEN_RESF:
   case TOKEN_RESLF:
     return handle_resX(lexer, name);
@@ -826,7 +828,11 @@ bool masm::GPCParser::handle_dX(Lexer &lexer, Token name) {
   Token type = lexer.next_token();
   Token value = lexer.next_token();
   value_t t = figure_out_type(value.type);
-  if (t == VALUE_ERR || t == VALUE_STRING || t == VALUE_FLOAT) {
+  if (type.type == TOKEN_DP && t != VALUE_IDEN) {
+    detailed_message(file.c_str(), value.line,
+                     "Expected identifier for the pointer type.", NULL);
+    return false;
+  } else if (t == VALUE_ERR || t == VALUE_STRING || t == VALUE_FLOAT) {
     detailed_message(file.c_str(), value.line,
                      "Expected integer after variable type.", NULL);
     return false;
@@ -837,7 +843,8 @@ bool masm::GPCParser::handle_dX(Lexer &lexer, Token name) {
   node.type = (type.type == TOKEN_DB)   ? NODE_DB
               : (type.type == TOKEN_DW) ? NODE_DW
               : (type.type == TOKEN_DD) ? NODE_DD
-                                        : NODE_DQ;
+              : (type.type == TOKEN_DQ) ? NODE_DQ
+                                        : NODE_DP;
   node.node = std::make_unique<NodeDB>();
   NodeDB *n = (NodeDB *)node.node.get();
   n->name = name.value;
@@ -908,6 +915,7 @@ bool masm::GPCParser::handle_resX(Lexer &lexer, Token name) {
               : (type.type == TOKEN_RESD) ? NODE_RESD
               : (type.type == TOKEN_RESQ) ? NODE_RESQ
               : (type.type == TOKEN_RESF) ? NODE_RESF
+              : (type.type == TOKEN_RESP) ? NODE_RESP
                                           : NODE_RESLF;
   node.node = std::make_unique<NodeRESB>();
   NodeRESB *n = (NodeRESB *)node.node.get();
@@ -1223,6 +1231,7 @@ bool masm::GPCParser::handle_instructions_with_reg_reg(Lexer &lexer,
   r2 = oper.type;
 
   Node node;
+  node.type = type;
   node.node = std::make_unique<NodeRegReg>();
   NodeRegReg *r = (NodeRegReg *)node.node.get();
   r->r1 = r1;

@@ -1,20 +1,12 @@
 #include <gpc_analyzer.hpp>
 
 masm::GPCAnalyzer::GPCAnalyzer(
-    std::vector<Node> &&n,
     std::unordered_map<std::string, std::pair<value_t, std::string>> &c,
     std::unordered_set<std::string> &l, SymbolTable &s)
-    : nodes(std::move(n)), consts(c), labels(l), symtable(s) {}
+    : consts(c), labels(l), symtable(s) {}
 
-bool masm::GPCAnalyzer::analyze() {
-  // We perform two loops here:
-  // One loop will only check for labels and variable.
-  // This first loop will populate the symboltable and the labels
-  // list.
-  // The second loop will finally analyze the Instructions.
-  if (!first_loop())
-    return false;
-  return second_loop();
+void masm::GPCAnalyzer::set_nodes(std::vector<Node> &&nodes) {
+  this->nodes = std::move(nodes);
 }
 
 bool masm::GPCAnalyzer::validate_defined_variables(Node &n) {
@@ -100,6 +92,7 @@ bool masm::GPCAnalyzer::validate_defined_variables(Node &n) {
 
 bool masm::GPCAnalyzer::validate_reserved_variables(Node &n) {
   switch (n.type) {
+  case NODE_RESP:
   case NODE_RESF:
   case NODE_RESLF:
   case NODE_RESQ:
@@ -220,6 +213,7 @@ bool masm::GPCAnalyzer::first_loop() {
     case NODE_RESD:
     case NODE_RESQ:
     case NODE_RESF:
+    case NODE_RESP:
     case NODE_RESLF: {
       NodeRESB *resX = (NodeRESB *)n.node.get();
       if (labels.find(resX->name) != labels.end()) {
@@ -240,6 +234,7 @@ bool masm::GPCAnalyzer::first_loop() {
       sym.type = (n.type == NODE_RESB)   ? BYTE
                  : (n.type == NODE_RESW) ? WORD
                  : (n.type == NODE_RESD) ? DWORD
+                 : (n.type == NODE_RESP) ? POINTER
                  : (n.type == NODE_RESQ) ? QWORD
                                          : FLOAT;
       sym.val_type = resX->type;
@@ -249,6 +244,36 @@ bool masm::GPCAnalyzer::first_loop() {
     }
     default:
       break;
+    }
+  }
+
+  return true;
+}
+
+bool masm::GPCAnalyzer::first_loop_second_phase() {
+  for (auto &n : nodes) {
+    if (n.type == NODE_DP) {
+      NodeDP *dp = (NodeDP *)n.node.get();
+      if (symtable.symbol_exists(dp->name)) {
+        detailed_message(n.file.c_str(), n.line,
+                         "Variable '%s' already exists- redeclaration.",
+                         dp->name.c_str());
+        return false;
+      }
+      auto if_label = labels.find(dp->value);
+      if (if_label == labels.end()) {
+        if (!symtable.symbol_exists(dp->value)) {
+          detailed_message(n.file.c_str(), n.line,
+                           "Variable '%s' for the pointer '%s' doesn't exist.",
+                           dp->value.c_str(), dp->name.c_str());
+          return false;
+        }
+      }
+      Symbol sym;
+      sym.type = POINTER;
+      sym.val_type = VALUE_INTEGER;
+      sym.value = dp->value;
+      symtable.add_symbol(dp->name, sym);
     }
   }
   return true;
@@ -261,8 +286,6 @@ bool masm::GPCAnalyzer::second_loop() {
    * */
   for (Node &n : nodes) {
     switch (n.type) {
-    case CONST_DEF:
-      break;
     case NODE_CMP_IMM:
     case NODE_IMOD_IMM:
     case NODE_IDIV_IMM:
@@ -287,7 +310,8 @@ bool masm::GPCAnalyzer::second_loop() {
           ri->type = c.second.first;
         } else {
           // Not a constant but could be a variable
-          if (resolve_variable(ri->immediate, {BYTE, WORD, DWORD, QWORD})) {
+          if (resolve_variable(ri->immediate,
+                               {BYTE, WORD, DWORD, QWORD, POINTER})) {
             ri->is_var = true;
             n.len = 1;
           } else {
@@ -301,6 +325,7 @@ bool masm::GPCAnalyzer::second_loop() {
       }
       break;
     }
+      // AT ARITHMETIC INSTRUCTIONS
     case NODE_FDIV32_IMM:
     case NODE_FMUL32_IMM:
     case NODE_FSUB32_IMM:
@@ -361,7 +386,9 @@ bool masm::GPCAnalyzer::second_loop() {
                         {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_OCTAL}));
 
         if (c.first) {
-          n.len = 2;
+          if (n.type != NODE_MOVSXB_IMM && n.type != NODE_MOVSXW_IMM &&
+              n.type != NODE_MOVSXD_IMM)
+            n.len = 2;
           ri->immediate = c.second.second;
           ri->type = c.second.first;
         } else {
@@ -399,6 +426,9 @@ bool masm::GPCAnalyzer::second_loop() {
                          "Unknwon LABEL to jump to: Not a valid label.", NULL);
         return false;
       }
+      i->is_var = true;
+      if (n.type == NODE_WHDLR)
+        n.len = 2;
       break;
     }
     case NODE_LOOP: {
@@ -480,12 +510,16 @@ bool masm::GPCAnalyzer::second_loop() {
     case NODE_AND_IMM:
     case NODE_OR_IMM:
     case NODE_XOR_IMM:
+      if (!analyze_instructions_with_only_const_imm(
+              n, {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_OCTAL}))
+        return false;
+      n.len = 2;
+      break;
     case NODE_SHL_IMM:
     case NODE_SHR_IMM:
       if (!analyze_instructions_with_only_const_imm(
               n, {VALUE_INTEGER, VALUE_BINARY, VALUE_HEX, VALUE_OCTAL}))
-        n.len = 2;
-      return false;
+        return false;
       break;
     case NODE_SOUT_IMM:
     case NODE_SIN_IMM: {
@@ -536,13 +570,13 @@ bool masm::GPCAnalyzer::second_loop() {
                          "Invalid CMPXCHG Instruction format.", NULL);
         return false;
       }
+      n.len = 2;
       break;
     }
     default:
       break;
     }
-    if (n.type != CONST_DEF)
-      result.push_back(std::move(n));
+    result.push_back(std::move(n));
   }
   return true;
 }
@@ -562,7 +596,7 @@ masm::GPCAnalyzer::resolve_if_constant(std::string name,
 }
 
 bool masm::GPCAnalyzer::resolve_variable(std::string name,
-                                         std::array<data_t, 4> expected) {
+                                         std::vector<data_t> expected) {
   if (!symtable.symbol_exists(name))
     return false;
   auto res = symtable.find_symbol(name);
@@ -576,7 +610,7 @@ bool masm::GPCAnalyzer::analyze_stack_based_instructions(
     Node &n, data_t expected, std::vector<value_t> vtlist) {
   NodeImm *imm = (NodeImm *)n.node.get();
   if (imm->type == VALUE_IDEN) {
-    if (resolve_variable(imm->imm, {expected})) {
+    if (resolve_variable(imm->imm, {expected, POINTER})) {
       imm->is_var = true;
       return true;
     } else {
@@ -613,7 +647,7 @@ bool masm::GPCAnalyzer::analyze_load_store_instructions(Node &n,
                                                         data_t expected) {
   NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
   if (imm->type == VALUE_IDEN) {
-    if (resolve_variable(imm->immediate, {expected})) {
+    if (resolve_variable(imm->immediate, {expected, POINTER})) {
       imm->is_var = true;
       return true;
     } else {

@@ -23,6 +23,7 @@ enum token_t {
   TOKEN_DW,
   TOKEN_DD,
   TOKEN_DQ,
+  TOKEN_DP,
   TOKEN_DF,
   TOKEN_DS,
   TOKEN_DLF,
@@ -31,6 +32,7 @@ enum token_t {
   TOKEN_RESD,
   TOKEN_RESF,
   TOKEN_RESQ,
+  TOKEN_RESP,
   TOKEN_RESLF,
 
   // Registers
@@ -247,6 +249,7 @@ static std::unordered_map<std::string, token_t> map = {
     {"dw", TOKEN_DW},
     {"dd", TOKEN_DD},
     {"dq", TOKEN_DQ},
+    {"dp", TOKEN_DP},
     {"df", TOKEN_DF},
     {"ds", TOKEN_DS},
     {"df", TOKEN_DF},
@@ -255,6 +258,7 @@ static std::unordered_map<std::string, token_t> map = {
     {"resw", TOKEN_RESW},
     {"resd", TOKEN_RESD},
     {"resq", TOKEN_RESQ},
+    {"resp", TOKEN_RESP},
     {"resf", TOKEN_RESF},
     {"reslf", TOKEN_RESLF},
     {"nop", TOKEN_NOP},

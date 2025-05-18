@@ -1,7 +1,12 @@
 #include <gpc_gen.hpp>
 
-masm::GPCGen::GPCGen(std::vector<Node> &n, SymbolTable &t, uint64_t a)
-    : final_nodes(std::move(n)), symtable(t), st_address_data(a) {}
+masm::GPCGen::GPCGen(SymbolTable &t,
+                     std::unordered_map<std::string, uint64_t> &laddr,
+                     std::unordered_map<std::string, uint64_t> &daddr,
+                     std::vector<uint8_t> &d, std::vector<uint8_t> &s,
+                     uint64_t a)
+    : symtable(t), st_address_data(a), label_addresses(laddr),
+      data_addresses(daddr), data(d), string(s) {}
 
 uint64_t masm::GPCGen::get_current_address_point() { return st_address_data; }
 
@@ -9,9 +14,19 @@ std::vector<masm::Inst64> masm::GPCGen::get_instructions() {
   return std::move(instructions);
 }
 
+void masm::GPCGen::set_final_nodes(std::vector<Node> &&nodes) {
+  final_nodes = std::move(nodes);
+}
+
 std::vector<uint8_t> masm::GPCGen::get_data() { return std::move(data); }
 
-bool masm::GPCGen::generate() { return true; }
+bool masm::GPCGen::generate() {
+  if (!first_iteration())
+    return false;
+  if (!second_iteration())
+    return false;
+  return true;
+}
 
 bool masm::GPCGen::first_iteration() {
   // First iteration will generate addresses for data and labels.
@@ -47,28 +62,6 @@ bool masm::GPCGen::first_iteration() {
       label_addresses[lbl->name] = i;
       break;
     }
-    case NODE_DB:
-    case NODE_DW:
-    case NODE_DD:
-    case NODE_DQ:
-    case NODE_DS:
-    case NODE_DF:
-    case NODE_DLF:
-    case NODE_RESB:
-    case NODE_RESW:
-    case NODE_RESD:
-    case NODE_RESQ:
-    case NODE_RESF:
-    case NODE_RESLF:
-      break;
-    default:
-      i += n.len * 8;
-    }
-  }
-  for (Node &n : final_nodes) {
-    switch (n.type) {
-    case NODE_LABEL:
-      break;
     case NODE_DB: {
       NodeDB *db = (NodeDB *)n.node.get();
       data_addresses[db->name] = st_address_data;
@@ -97,6 +90,15 @@ bool masm::GPCGen::first_iteration() {
       st_address_data += 8;
       break;
     }
+    case NODE_DP: {
+      NodeDP *dp = (NodeDP *)n.node.get();
+      data_addresses[dp->name] = st_address_data;
+      add_data(dp->value, dp->type, 0);
+      st_address_data += 8;
+      break;
+    }
+    case NODE_DS:
+      break;
     case NODE_DF: {
       NodeDF *df = (NodeDF *)n.node.get();
       data_addresses[df->name] = st_address_data;
@@ -109,13 +111,6 @@ bool masm::GPCGen::first_iteration() {
       data_addresses[dlf->name] = st_address_data;
       add_data(dlf->value, dlf->type, 8);
       st_address_data += 8;
-      break;
-    }
-    case NODE_DS: {
-      NodeDS *ds = (NodeDS *)n.node.get();
-      data_addresses[ds->name] = st_address_data;
-      add_data(ds->value, ds->type, 0);
-      st_address_data += ds->value.length();
       break;
     }
     case NODE_RESB: {
@@ -136,6 +131,7 @@ bool masm::GPCGen::first_iteration() {
       add_reserved_data(res->value, res->type, 4);
       break;
     }
+    case NODE_RESP:
     case NODE_RESQ: {
       NodeRESQ *res = (NodeRESQ *)n.node.get();
       data_addresses[res->name] = st_address_data;
@@ -154,6 +150,42 @@ bool masm::GPCGen::first_iteration() {
       add_reserved_data(res->value, res->type, 8);
       break;
     }
+    default:
+      i += n.len * 8;
+    }
+  }
+  return true;
+}
+
+bool masm::GPCGen::first_iteration_second_phase(uint64_t addr_point) {
+  st_address_data = addr_point;
+  for (auto &n : final_nodes) {
+    if (n.type == NODE_DS) {
+      NodeDS *ds = (NodeDS *)n.node.get();
+      data_addresses[ds->name] = st_address_data;
+      add_data(ds->value, ds->type, 0);
+      st_address_data += ds->value.length();
+    }
+  }
+  return true;
+}
+
+bool masm::GPCGen::first_iteration_third_phase(uint64_t addr_point) {
+  st_address_data = addr_point;
+  for (Node &n : final_nodes) {
+    if (n.type == NODE_DP) {
+      NodeDP *dp = (NodeDP *)n.node.get();
+      Data64 d;
+      d.whole_word = data_addresses[dp->value];
+      size_t this_ptr = data_addresses[dp->name];
+      data[this_ptr] = d.bytes.b7;
+      data[this_ptr + 1] = d.bytes.b6;
+      data[this_ptr + 2] = d.bytes.b5;
+      data[this_ptr + 3] = d.bytes.b4;
+      data[this_ptr + 4] = d.bytes.b3;
+      data[this_ptr + 5] = d.bytes.b2;
+      data[this_ptr + 6] = d.bytes.b1;
+      data[this_ptr + 7] = d.bytes.b0;
     }
   }
   return true;
@@ -169,8 +201,6 @@ bool masm::GPCGen::second_iteration() {
                    NULL);
     return false;
   }
-
-  /*PUSH a JUMP instruction to MAIN here*/
 
   // Due to MY lack of brain power during the design of the
   // assembler, we have to deal with insanity.
@@ -190,6 +220,7 @@ bool masm::GPCGen::second_iteration() {
     case NODE_DW:
     case NODE_DD:
     case NODE_DQ:
+    case NODE_DP:
     case NODE_DS:
     case NODE_DF:
     case NODE_DLF:
@@ -197,6 +228,7 @@ bool masm::GPCGen::second_iteration() {
     case NODE_RESW:
     case NODE_RESD:
     case NODE_RESQ:
+    case NODE_RESP:
     case NODE_RESF:
     case NODE_RESLF:
       break;
@@ -367,6 +399,11 @@ bool masm::GPCGen::second_iteration() {
     }
     case NODE_INQ: {
       NodeReg *r = (NodeReg *)n.node.get();
+      instructions_with_single_regr(OP_INQ, token_to_regr(r->reg));
+      break;
+    }
+    case NODE_OUTQ: {
+      NodeReg *r = (NodeReg *)n.node.get();
       instructions_with_single_regr(OP_OUTQ, token_to_regr(r->reg));
       break;
     }
@@ -432,12 +469,12 @@ bool masm::GPCGen::second_iteration() {
     }
     case NODE_SOUT_REG: {
       NodeReg *r = (NodeReg *)n.node.get();
-      instructions_with_single_regr(OP_INC, token_to_regr(r->reg));
+      instructions_with_single_regr(OP_SOUT_REG, token_to_regr(r->reg));
       break;
     }
     case NODE_SIN_REG: {
       NodeReg *r = (NodeReg *)n.node.get();
-      instructions_with_single_regr(OP_INC, token_to_regr(r->reg));
+      instructions_with_single_regr(OP_SIN_REG, token_to_regr(r->reg));
       break;
     }
     case NODE_ADD_REGR: {
@@ -728,12 +765,24 @@ bool masm::GPCGen::second_iteration() {
                                  token_to_regr(rr->r2));
       break;
     }
+    case NODE_CMP_REGR: {
+      NodeRegReg *rr = (NodeRegReg *)n.node.get();
+      instructions_with_two_regr(OP_CMP_REG, token_to_regr(rr->r1),
+                                 token_to_regr(rr->r2));
+      break;
+    }
     case NODE_JMP_IMM: {
       instructions_with_one_immediate(OP_JMP_ADDR, n, 0, true);
       break;
     }
     case NODE_WHDLR: {
-      instructions_with_one_immediate(OP_WHDLR, n, 0, true);
+      NodeImm *imm = (NodeImm *)n.node.get();
+      auto label = label_addresses.find(imm->imm);
+      Inst64 i;
+      i.bytes.b0 = OP_WHDLR;
+      instructions.push_back(i);
+      i.whole_word = label->second;
+      instructions.push_back(i);
       break;
     }
     case NODE_CALL_IMM: {
@@ -1004,17 +1053,20 @@ bool masm::GPCGen::second_iteration() {
     }
     case NODE_MOVSXB_IMM: {
       NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
-      movesxX(OP_MOVESX_IMM8, imm->regr, imm->immediate, imm->type, 1);
+      two_operand_second_is_immediate_in_same_qword(
+          OP_MOVESX_IMM8, imm->regr, imm->immediate, imm->type, 1);
       break;
     }
     case NODE_MOVSXW_IMM: {
       NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
-      movesxX(OP_MOVESX_IMM16, imm->regr, imm->immediate, imm->type, 2);
+      two_operand_second_is_immediate_in_same_qword(
+          OP_MOVESX_IMM16, imm->regr, imm->immediate, imm->type, 2);
       break;
     }
     case NODE_MOVSXD_IMM: {
       NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
-      movesxX(OP_MOVESX_IMM32, imm->regr, imm->immediate, imm->type, 4);
+      two_operand_second_is_immediate_in_same_qword(
+          OP_MOVESX_IMM32, imm->regr, imm->immediate, imm->type, 4);
       break;
     }
     case NODE_MOVNZ: {
@@ -1116,9 +1168,227 @@ bool masm::GPCGen::second_iteration() {
     case NODE_LOOP: {
       NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
       auto label = label_addresses.find(imm->immediate);
+      Inst64 i;
+      i.bytes.b0 = OP_LOOP;
+      i.bytes.b1 = token_to_regr(imm->regr);
+      i.whole_word |= ((label->second & 0xFFFFFFFFFFFF));
+      instructions.push_back(i);
+      break;
+    }
+    case NODE_INT: {
+      NodeImm *imm = (NodeImm *)n.node.get();
+      single_operand_which_is_immediate(OP_INTR, imm->imm, imm->type, 2);
+      auto i = *instructions.end();
+      instructions.pop_back();
+      instructions.pop_back();
+      i.bytes.b0 = OP_INTR;
+      instructions.push_back(i);
+      break;
+    }
+    case NODE_LOADSB: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate_in_same_qword(
+          OP_LOADSB, imm->regr, imm->immediate, imm->type, 2);
+      break;
+    }
+    case NODE_LOADSW: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate_in_same_qword(
+          OP_LOADSW, imm->regr, imm->immediate, imm->type, 2);
+      break;
+    }
+    case NODE_LOADSD: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate_in_same_qword(
+          OP_LOADSD, imm->regr, imm->immediate, imm->type, 2);
+      break;
+    }
+    case NODE_LOADSQ: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate_in_same_qword(
+          OP_LOADSQ, imm->regr, imm->immediate, imm->type, 2);
+      break;
+    }
+    case NODE_STORESB: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate_in_same_qword(
+          OP_STORESB, imm->regr, imm->immediate, imm->type, 2);
+      break;
+    }
+    case NODE_STORESW: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate_in_same_qword(
+          OP_STORESW, imm->regr, imm->immediate, imm->type, 2);
+      break;
+    }
+    case NODE_STORESD: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate_in_same_qword(
+          OP_STORESD, imm->regr, imm->immediate, imm->type, 2);
+      break;
+    }
+    case NODE_STORESQ: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate_in_same_qword(
+          OP_STORESQ, imm->regr, imm->immediate, imm->type, 2);
+      break;
+    }
+    case NODE_AND_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_AND_IMM, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_OR_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_OR_IMM, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_XOR_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate(OP_XOR_IMM, imm->immediate, imm->type, 8,
+                                      imm->regr);
+      break;
+    }
+    case NODE_SHL_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate_in_same_qword(
+          OP_LSHIFT, imm->regr, imm->immediate, imm->type, 1);
+      break;
+    }
+    case NODE_SHR_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      two_operand_second_is_immediate_in_same_qword(
+          OP_RSHIFT, imm->regr, imm->immediate, imm->type, 1);
+      break;
+    }
+    case NODE_CMP_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      if (imm->is_var)
+        choose_opcode_according_to_variable(imm,
+                                            {OP_CMP_IMM_MEMB, OP_CMP_IMM_MEMW,
+                                             OP_CMP_IMM_MEMD, OP_CMP_IMM_MEMQ});
+      else
+        two_operand_second_is_immediate(OP_CMP_IMM, imm->immediate, imm->type,
+                                        8, imm->regr);
+      break;
+    }
+    case NODE_LOADB_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_LOADB});
+      break;
+    }
+    case NODE_LOADW_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, OP_LOADW});
+      break;
+    }
+    case NODE_LOADD_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, 0, OP_LOADD});
+      break;
+    }
+    case NODE_LOADQ_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, 0, 0, OP_LOADQ});
+      break;
+    }
+    case NODE_STOREB_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_STOREB});
+      break;
+    }
+    case NODE_STOREW_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, OP_STOREW});
+      break;
+    }
+    case NODE_STORED_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, 0, OP_STORED});
+      break;
+    }
+    case NODE_STOREQ_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, 0, 0, OP_STOREQ});
+      break;
+    }
+    case NODE_ATM_LOADB_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_ATOMIC_LOADB});
+      break;
+    }
+    case NODE_ATM_LOADW_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, OP_ATOMIC_LOADW});
+      break;
+    }
+    case NODE_ATM_LOADD_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, 0, OP_ATOMIC_LOADD});
+      break;
+    }
+    case NODE_ATM_LOADQ_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, 0, 0, OP_ATOMIC_LOADQ});
+      break;
+    }
+    case NODE_ATM_STOREB_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {OP_ATOMIC_STOREB});
+      break;
+    }
+    case NODE_ATM_STOREW_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, OP_ATOMIC_STOREW});
+      break;
+    }
+    case NODE_ATM_STORED_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, 0, OP_ATOMIC_STORED});
+      break;
+    }
+    case NODE_ATM_STOREQ_IMM: {
+      NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
+      choose_opcode_according_to_variable(imm, {0, 0, 0, OP_ATOMIC_STOREQ});
+      break;
+    }
+    case NODE_LEA: {
+      NodeLea *l = (NodeLea *)n.node.get();
+      Inst64 i;
+      i.bytes.b0 = OP_LEA;
+      i.bytes.b4 = token_to_regr(l->r1);
+      i.bytes.b5 = token_to_regr(l->r2);
+      i.bytes.b6 = token_to_regr(l->r3);
+      i.bytes.b7 = token_to_regr(l->r4);
+      instructions.push_back(i);
+      break;
+    }
+    case NODE_CMPXCHG_IMM: {
+      NodeCMPXCHGImm *ci = (NodeCMPXCHGImm *)n.node.get();
+      auto data = data_addresses.find(ci->imm);
+      Inst64 i;
+      i.bytes.b0 = OP_CMPXCHG;
+      i.bytes.b6 = token_to_regr(ci->r1);
+      i.bytes.b7 = token_to_regr(ci->r2);
+      instructions.push_back(i);
+      i.whole_word = data->second;
+      instructions.push_back(i);
+      break;
+    }
+    case NODE_CMPXCHG_REG: {
+      NodeCMPXCHGReg *ci = (NodeCMPXCHGReg *)n.node.get();
+      Inst64 i;
+      i.bytes.b0 = OP_CMPXCHG_REGR;
+      i.bytes.b6 = token_to_regr(ci->r1);
+      i.bytes.b7 = token_to_regr(ci->r2);
+      i.bytes.b5 = token_to_regr(ci->r3);
+      instructions.push_back(i);
+      break;
     }
     default:
-      simple_message("Unknown NODE %d %zu", n.type, n.line);
+      simple_message("Unknown NODE %u %zu", n.type, n.line);
       break;
     }
   }
@@ -1142,6 +1412,11 @@ void masm::GPCGen::add_data(std::string value, value_t type, size_t len) {
     break;
   }
   case VALUE_INTEGER: {
+    if (len == 0) {
+      val.whole_word = 0;
+      len = 8;
+      break;
+    }
     val.whole_word = std::strtoull(value.c_str(), NULL, 10);
     break;
   }
@@ -1263,6 +1538,7 @@ void masm::GPCGen::instructions_with_two_regr(uint8_t opcode, uint8_t reg1,
   i.bytes.b0 = opcode;
   i.bytes.b6 = reg1;
   i.bytes.b7 = reg2;
+  instructions.push_back(i);
 }
 
 void masm::GPCGen::instructions_with_one_immediate(uint8_t opcode, Node &n,
@@ -1279,7 +1555,7 @@ void masm::GPCGen::instructions_with_one_immediate(uint8_t opcode, Node &n,
     } else {
       i = label_addresses.find(imm->imm);
     }
-    inst.whole_word &= (0xFFFF000000000000 | i->second);
+    inst.whole_word |= ((i->second & 0xFFFFFFFFFFFF));
   } else {
     inst.bytes.b0 = op2;
     instructions.push_back(inst);
@@ -1340,7 +1616,7 @@ void masm::GPCGen::single_operand_which_is_variable(uint8_t opcode,
   }
   Inst64 i;
   i.bytes.b0 = opcode;
-  i.whole_word &= (0xFF00000000000000 | (var->second & 0xFFFFFFFFFFFF));
+  i.whole_word |= ((var->second & 0xFFFFFFFFFFFF));
   instructions.push_back(i);
 }
 
@@ -1350,19 +1626,19 @@ void masm::GPCGen::single_operand_which_is_immediate(uint8_t opcode,
   Inst64 val;
   switch (type) {
   case VALUE_HEX: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 16) & len * 8;
+    val.whole_word = std::strtoull(value.c_str(), NULL, 16);
     break;
   }
   case VALUE_OCTAL: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 8) & len * 8;
+    val.whole_word = std::strtoull(value.c_str(), NULL, 8);
     break;
   }
   case VALUE_BINARY: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 2) & len * 8;
+    val.whole_word = std::strtoull(value.c_str(), NULL, 2);
     break;
   }
   case VALUE_INTEGER: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 10) & len * 8;
+    val.whole_word = std::strtoull(value.c_str(), NULL, 10);
     break;
   }
   case VALUE_FLOAT: {
@@ -1399,19 +1675,19 @@ void masm::GPCGen::two_operand_second_is_immediate(uint8_t opcode,
   Inst64 val;
   switch (type) {
   case VALUE_HEX: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 16) & len * 8;
+    val.whole_word = std::strtoull(value.c_str(), NULL, 16);
     break;
   }
   case VALUE_OCTAL: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 8) & len * 8;
+    val.whole_word = std::strtoull(value.c_str(), NULL, 8);
     break;
   }
   case VALUE_BINARY: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 2) & len * 8;
+    val.whole_word = std::strtoull(value.c_str(), NULL, 2);
     break;
   }
   case VALUE_INTEGER: {
-    val.whole_word = std::strtoull(value.c_str(), NULL, 10) & len * 8;
+    val.whole_word = std::strtoull(value.c_str(), NULL, 10);
     break;
   }
   case VALUE_FLOAT: {
@@ -1467,6 +1743,7 @@ void masm::GPCGen::choose_opcode_according_to_variable(
     break;
   }
   case QWORD:
+  case POINTER:
   case RESQ: {
     i.bytes.b0 = opcodes[3];
     break;
@@ -1477,12 +1754,12 @@ void masm::GPCGen::choose_opcode_according_to_variable(
   default:
     break;
   }
-  i.whole_word |= (0xFFFF000000000000 | (address->second & 0xFFFFFFFFFFFF));
+  i.whole_word |= ((address->second & 0xFFFFFFFFFFFF));
   instructions.push_back(i);
 }
 
-void masm::GPCGen::movesxX(uint8_t opcode, token_t regr, std::string imm,
-                           value_t type, size_t len) {
+void masm::GPCGen::two_operand_second_is_immediate_in_same_qword(
+    uint8_t opcode, token_t regr, std::string imm, value_t type, size_t len) {
   Inst64 i;
   Data64 val;
   i.bytes.b0 = opcode;
@@ -1507,6 +1784,6 @@ void masm::GPCGen::movesxX(uint8_t opcode, token_t regr, std::string imm,
   default:
     return;
   }
-  i.half_words.w1 = val.whole_word & (8 * len);
+  i.half_words.w1 = val.whole_word & 0xFFFF;
   instructions.push_back(i);
 }

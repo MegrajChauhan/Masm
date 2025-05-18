@@ -23,15 +23,17 @@ class GPCAnalyzer {
 
 public:
   GPCAnalyzer(
-      std::vector<Node> &&n,
       std::unordered_map<std::string, std::pair<value_t, std::string>> &c,
       std::unordered_set<std::string> &l, SymbolTable &s);
 
-  bool analyze();
+  // bool analyze();
+  void set_nodes(std::vector<Node> &&nodes);
 
   std::vector<Node> get_result();
 
   bool first_loop();
+
+  bool first_loop_second_phase();
 
   bool second_loop();
 
@@ -42,7 +44,7 @@ public:
   std::pair<bool, std::pair<value_t, std::string>>
   resolve_if_constant(std::string name, std::vector<value_t> expected);
 
-  bool resolve_variable(std::string name, std::array<data_t, 4> expected);
+  bool resolve_variable(std::string name, std::vector<data_t> expected);
 
   bool analyze_stack_based_instructions(Node &n, data_t expected,
                                         std::vector<value_t> vtlist);

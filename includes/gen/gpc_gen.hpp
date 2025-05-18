@@ -12,18 +12,22 @@ namespace masm {
 typedef Inst64 Data64;
 class GPCGen {
   std::vector<Node> final_nodes; // All we will convert to instructions
-  SymbolTable symtable;          // All the data
+  SymbolTable &symtable;         // All the data
   uint64_t st_address_data;
 
-  std::unordered_map<std::string, uint64_t> label_addresses;
-  std::unordered_map<std::string, uint64_t> data_addresses;
+  std::unordered_map<std::string, uint64_t> &label_addresses;
+  std::unordered_map<std::string, uint64_t> &data_addresses;
 
   // Results
   std::vector<Inst64> instructions;
-  std::vector<uint8_t> data;
+  std::vector<uint8_t> &data, &string;
 
 public:
-  GPCGen(std::vector<Node> &, SymbolTable &, uint64_t);
+  GPCGen(SymbolTable &, std::unordered_map<std::string, uint64_t> &,
+         std::unordered_map<std::string, uint64_t> &, std::vector<uint8_t> &,
+         std::vector<uint8_t> &, uint64_t);
+
+  void set_final_nodes(std::vector<Node> &&nodes);
 
   uint64_t get_current_address_point();
 
@@ -34,6 +38,10 @@ public:
   bool generate();
 
   bool first_iteration();
+
+  bool first_iteration_second_phase(uint64_t addr_point);
+
+  bool first_iteration_third_phase(uint64_t addr_point);
 
   bool second_iteration();
 
@@ -65,8 +73,10 @@ public:
   void two_operand_second_is_immediate(uint8_t opcode, std::string value,
                                        value_t type, size_t len, token_t reg1);
 
-  void movesxX(uint8_t opcode, token_t regr, std::string imm, value_t type,
-               size_t len);
+  void two_operand_second_is_immediate_in_same_qword(uint8_t opcode,
+                                                     token_t regr,
+                                                     std::string imm,
+                                                     value_t type, size_t len);
 };
 }; // namespace masm
 
