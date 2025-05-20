@@ -272,6 +272,7 @@ bool masm::GPCAnalyzer::first_loop_second_phase() {
       Symbol sym;
       sym.type = POINTER;
       sym.val_type = VALUE_INTEGER;
+      dp->type = VALUE_INTEGER;
       sym.value = dp->value;
       symtable.add_symbol(dp->name, sym);
     }
@@ -563,6 +564,38 @@ bool masm::GPCAnalyzer::second_loop() {
       if (!analyze_load_store_instructions(n, QWORD))
         return false;
       break;
+    case NODE_ATM_LOADB_IMM:
+      if (!analyze_load_store_instructions(n, BYTE))
+        return false;
+      break;
+    case NODE_ATM_LOADW_IMM:
+      if (!analyze_load_store_instructions(n, WORD))
+        return false;
+      break;
+    case NODE_ATM_LOADD_IMM:
+      if (!analyze_load_store_instructions(n, DWORD))
+        return false;
+      break;
+    case NODE_ATM_LOADQ_IMM:
+      if (!analyze_load_store_instructions(n, QWORD))
+        return false;
+      break;
+    case NODE_ATM_STOREB_IMM:
+      if (!analyze_load_store_instructions(n, BYTE))
+        return false;
+      break;
+    case NODE_ATM_STOREW_IMM:
+      if (!analyze_load_store_instructions(n, WORD))
+        return false;
+      break;
+    case NODE_ATM_STORED_IMM:
+      if (!analyze_load_store_instructions(n, DWORD))
+        return false;
+      break;
+    case NODE_ATM_STOREQ_IMM:
+      if (!analyze_load_store_instructions(n, QWORD))
+        return false;
+      break;
     case NODE_CMPXCHG_IMM: {
       NodeCMPXCHGImm *i = (NodeCMPXCHGImm *)n.node.get();
       if (!resolve_variable(i->imm, {BYTE})) {
@@ -647,8 +680,37 @@ bool masm::GPCAnalyzer::analyze_load_store_instructions(Node &n,
                                                         data_t expected) {
   NodeRegrImm *imm = (NodeRegrImm *)n.node.get();
   if (imm->type == VALUE_IDEN) {
-    if (resolve_variable(imm->immediate, {expected, POINTER})) {
+    if (resolve_variable(imm->immediate, {expected})) {
       imm->is_var = true;
+      return true;
+    } else if (resolve_variable(imm->immediate, {POINTER})) {
+      imm->is_var = true;
+      switch (n.type) {
+      case NODE_LOADB_IMM:
+      case NODE_LOADW_IMM:
+      case NODE_LOADD_IMM:
+      case NODE_LOADQ_IMM:
+        n.type = NODE_LOADQ_IMM;
+        break;
+      case NODE_ATM_LOADB_IMM:
+      case NODE_ATM_LOADW_IMM:
+      case NODE_ATM_LOADD_IMM:
+      case NODE_ATM_LOADQ_IMM:
+        n.type = NODE_ATM_LOADQ_IMM;
+        break;
+      case NODE_STOREB_IMM:
+      case NODE_STOREW_IMM:
+      case NODE_STORED_IMM:
+      case NODE_STOREQ_IMM:
+        n.type = NODE_STOREQ_IMM;
+        break;
+      case NODE_ATM_STOREB_IMM:
+      case NODE_ATM_STOREW_IMM:
+      case NODE_ATM_STORED_IMM:
+      case NODE_ATM_STOREQ_IMM:
+        n.type = NODE_ATM_STOREQ_IMM;
+        break;
+      }
       return true;
     } else {
       detailed_message(n.file.c_str(), n.line,

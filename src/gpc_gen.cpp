@@ -20,15 +20,14 @@ void masm::GPCGen::set_final_nodes(std::vector<Node> &&nodes) {
 
 std::vector<uint8_t> masm::GPCGen::get_data() { return std::move(data); }
 
-bool masm::GPCGen::generate() {
-  if (!first_iteration())
-    return false;
-  if (!second_iteration())
-    return false;
-  return true;
+masm::Inst64 masm::GPCGen::get_ENTRY_INSTRUCTION(size_t addr) {
+  Inst64 i;
+  i.whole_word = (addr & 0xFFFFFFFFFFFF) - 8;
+  i.bytes.b0 = OP_JMP_ADDR;
+  return i;
 }
 
-bool masm::GPCGen::first_iteration() {
+bool masm::GPCGen::first_iteration(uint64_t addr_point) {
   // First iteration will generate addresses for data and labels.
   // Here we will only generate data
 
@@ -54,6 +53,7 @@ bool masm::GPCGen::first_iteration() {
   // To minimize the number of iterations, we will use the same third
   // iteration to generate the instructions as well.
 
+  st_address_data = addr_point;
   uint64_t i = 8;
   for (Node &n : final_nodes) {
     switch (n.type) {
@@ -196,11 +196,6 @@ bool masm::GPCGen::second_iteration() {
   // First instruction is actually a jump instruction to the
   // entry procedure named main which must be defined
   // otherwise there will be errors.
-  if (label_addresses.find("main") == label_addresses.end()) {
-    simple_message("MISSING entry procedure MAIN.... Cannot generate code.",
-                   NULL);
-    return false;
-  }
 
   // Due to MY lack of brain power during the design of the
   // assembler, we have to deal with insanity.
@@ -772,7 +767,7 @@ bool masm::GPCGen::second_iteration() {
       break;
     }
     case NODE_JMP_IMM: {
-      instructions_with_one_immediate(OP_JMP_ADDR, n, 0, true);
+      instructions_with_one_immediate(OP_JMP_ADDR, n, 0, true, true);
       break;
     }
     case NODE_WHDLR: {
@@ -790,67 +785,67 @@ bool masm::GPCGen::second_iteration() {
       break;
     }
     case NODE_JNZ: {
-      instructions_with_one_immediate(OP_JNZ, n, 0, true);
+      instructions_with_one_immediate(OP_JNZ, n, 0, true, true);
       break;
     }
     case NODE_JZ: {
-      instructions_with_one_immediate(OP_JZ, n, 0, true);
+      instructions_with_one_immediate(OP_JZ, n, 0, true, true);
       break;
     }
     case NODE_JNE: {
-      instructions_with_one_immediate(OP_JNE, n, 0, true);
+      instructions_with_one_immediate(OP_JNE, n, 0, true, true);
       break;
     }
     case NODE_JE: {
-      instructions_with_one_immediate(OP_JE, n, 0, true);
+      instructions_with_one_immediate(OP_JE, n, 0, true, true);
       break;
     }
     case NODE_JNC: {
-      instructions_with_one_immediate(OP_JNC, n, 0, true);
+      instructions_with_one_immediate(OP_JNC, n, 0, true, true);
       break;
     }
     case NODE_JC: {
-      instructions_with_one_immediate(OP_JC, n, 0, true);
+      instructions_with_one_immediate(OP_JC, n, 0, true, true);
       break;
     }
     case NODE_JNO: {
-      instructions_with_one_immediate(OP_JNO, n, 0, true);
+      instructions_with_one_immediate(OP_JNO, n, 0, true, true);
       break;
     }
     case NODE_JO: {
-      instructions_with_one_immediate(OP_JO, n, 0, true);
+      instructions_with_one_immediate(OP_JO, n, 0, true, true);
       break;
     }
     case NODE_JNN: {
-      instructions_with_one_immediate(OP_JNN, n, 0, true);
+      instructions_with_one_immediate(OP_JNN, n, 0, true, true);
       break;
     }
     case NODE_JN: {
-      instructions_with_one_immediate(OP_JN, n, 0, true);
+      instructions_with_one_immediate(OP_JN, n, 0, true, true);
       break;
     }
     case NODE_JNG: {
-      instructions_with_one_immediate(OP_JNG, n, 0, true);
+      instructions_with_one_immediate(OP_JNG, n, 0, true, true);
       break;
     }
     case NODE_JG: {
-      instructions_with_one_immediate(OP_JG, n, 0, true);
+      instructions_with_one_immediate(OP_JG, n, 0, true, true);
       break;
     }
     case NODE_JNS: {
-      instructions_with_one_immediate(OP_JNS, n, 0, true);
+      instructions_with_one_immediate(OP_JNS, n, 0, true, true);
       break;
     }
     case NODE_JS: {
-      instructions_with_one_immediate(OP_JS, n, 0, true);
+      instructions_with_one_immediate(OP_JS, n, 0, true, true);
       break;
     }
     case NODE_JGE: {
-      instructions_with_one_immediate(OP_JGE, n, 0, true);
+      instructions_with_one_immediate(OP_JGE, n, 0, true, true);
       break;
     }
     case NODE_JSE: {
-      instructions_with_one_immediate(OP_JSE, n, 0, true);
+      instructions_with_one_immediate(OP_JSE, n, 0, true, true);
       break;
     }
     case NODE_PUSHB: {
@@ -1440,7 +1435,7 @@ void masm::GPCGen::add_data(std::string value, value_t type, size_t len) {
   }
   case VALUE_STRING: {
     for (size_t i = 0; i < value.length(); i++)
-      data.push_back(value[i]);
+      string.push_back(value[i]);
     return;
   }
   default:
@@ -1543,7 +1538,7 @@ void masm::GPCGen::instructions_with_two_regr(uint8_t opcode, uint8_t reg1,
 
 void masm::GPCGen::instructions_with_one_immediate(uint8_t opcode, Node &n,
                                                    size_t len, bool label,
-                                                   uint8_t op2) {
+                                                   uint8_t op2, bool jmp) {
   NodeImm *imm = (NodeImm *)n.node.get();
   Inst64 inst;
   inst.bytes.b0 = opcode;
@@ -1555,7 +1550,7 @@ void masm::GPCGen::instructions_with_one_immediate(uint8_t opcode, Node &n,
     } else {
       i = label_addresses.find(imm->imm);
     }
-    inst.whole_word |= ((i->second & 0xFFFFFFFFFFFF));
+    inst.whole_word |= ((i->second & 0xFFFFFFFFFFFF) - ((jmp) ? 8 : 0));
   } else {
     inst.bytes.b0 = op2;
     instructions.push_back(inst);

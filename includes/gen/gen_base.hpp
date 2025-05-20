@@ -2,6 +2,8 @@
 #define _GEN_BASE_
 
 #include <cstdint>
+#include <nodes.hpp>
+#include <vector>
 
 namespace masm {
 union Inst64 {
@@ -54,6 +56,32 @@ union Inst64 {
 #endif
   uint64_t whole_word = 0;
 };
+
+class Gen {
+public:
+  Gen() = default;
+
+  virtual ~Gen() = default;
+
+  virtual void set_final_nodes(std::vector<Node> &&nodes) = 0;
+
+  virtual uint64_t get_current_address_point() = 0;
+
+  virtual std::vector<Inst64> get_instructions() = 0;
+
+  virtual std::vector<uint8_t> get_data() = 0;
+
+  virtual Inst64 get_ENTRY_INSTRUCTION(size_t addr) = 0;
+
+  virtual bool first_iteration(uint64_t addr_point) = 0;
+
+  virtual bool first_iteration_second_phase(uint64_t addr_point) = 0;
+
+  virtual bool first_iteration_third_phase(uint64_t addr_point) = 0;
+
+  virtual bool second_iteration() = 0;
+};
+
 }; // namespace masm
 
 #endif

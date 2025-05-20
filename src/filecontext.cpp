@@ -8,8 +8,7 @@ masm::FileContext::FileContext(
     std::unordered_map<std::string, uint64_t> &daddr, std::vector<uint8_t> &D,
     std::vector<uint8_t> &S, uint64_t d_addr)
     : CONSTANTS(C), LABELS(L), symtable(sym), label_addresses(laddr),
-      data_addresses(daddr), include_paths(i_paths), data(D), string(S),
-      analyzer(C, L, sym), gen(sym, laddr, daddr, D, S, d_addr) {
+      data_addresses(daddr), include_paths(i_paths), data(D), string(S) {
   this->d_addr = d_addr;
 }
 
@@ -24,9 +23,13 @@ bool masm::FileContext::file_exists(std::filesystem::path path) {
 bool masm::FileContext::deduce_file_type(std::filesystem::path path) {
   std::string fpath = path.string();
 
-  if (fpath.ends_with(".gpc.masm"))
+  if (fpath.ends_with(".gpc.masm")) {
     type = GPC;
-  else {
+    analyzer =
+        std::make_unique<GPCAnalyzer>(GPCAnalyzer(CONSTANTS, LABELS, symtable));
+    gen = std::make_unique<GPCGen>(GPCGen(
+        symtable, label_addresses, data_addresses, data, string, d_addr));
+  } else {
     simple_message("Unknown File Type: %s", fpath.c_str());
     return false;
   }
@@ -56,6 +59,8 @@ std::vector<masm::Node> masm::FileContext::get_nodes() {
   return std::move(nodes);
 }
 
+masm::file_t masm::FileContext::get_file_type() { return type; }
+
 uint64_t masm::FileContext::get_d_addr() { return d_addr; }
 
 void masm::FileContext::set_imports(
@@ -65,6 +70,10 @@ void masm::FileContext::set_imports(
 
 void masm::FileContext::set_nodes(std::vector<Node> &&n) {
   nodes = std::move(n);
+}
+
+masm::Inst64 masm::FileContext::get_ENTRY_INSTRUCTION(size_t addr) {
+  return gen->get_ENTRY_INSTRUCTION(addr);
 }
 
 bool masm::FileContext::file_prepare(std::string input_file) {
@@ -135,46 +144,46 @@ bool masm::FileContext::pre_analysis() {
 }
 
 bool masm::FileContext::analyze_file_first_step() {
-  analyzer.set_nodes(std::move(nodes));
-  return analyzer.first_loop();
+  analyzer->set_nodes(std::move(nodes));
+  return analyzer->first_loop();
 }
 
 bool masm::FileContext::analyze_file_first_step_second_phase() {
-  return analyzer.first_loop_second_phase();
+  return analyzer->first_loop_second_phase();
 }
 
 bool masm::FileContext::analyze_file_second_step() {
-  return analyzer.second_loop();
+  return analyzer->second_loop();
 }
 
-bool masm::FileContext::gen_file_first_step() {
-  gen.set_final_nodes(analyzer.get_result());
-  bool ret = gen.first_iteration();
-  d_addr = gen.get_current_address_point();
+bool masm::FileContext::gen_file_first_step(uint64_t addr_point) {
+  gen->set_final_nodes(analyzer->get_result());
+  bool ret = gen->first_iteration(addr_point);
+  d_addr = gen->get_current_address_point();
   return ret;
 }
 
 bool masm::FileContext::gen_file_first_step_second_phase(uint64_t addr) {
-  bool ret = gen.first_iteration_second_phase(addr);
-  d_addr = gen.get_current_address_point();
+  bool ret = gen->first_iteration_second_phase(addr);
+  d_addr = gen->get_current_address_point();
   return ret;
 }
 
 bool masm::FileContext::gen_file_first_step_third_phase(uint64_t addr) {
-  bool ret = gen.first_iteration_third_phase(addr);
-  d_addr = gen.get_current_address_point();
+  bool ret = gen->first_iteration_third_phase(addr);
+  d_addr = gen->get_current_address_point();
   return ret;
 }
 
 bool masm::FileContext::gen_file_second_step() {
-  return gen.second_iteration();
+  return gen->second_iteration();
 }
 
 std::vector<masm::Inst64> masm::FileContext::get_instructions() {
-  return gen.get_instructions();
+  return gen->get_instructions();
 }
 
-std::vector<uint8_t> masm::FileContext::get_data() { return gen.get_data(); }
+std::vector<uint8_t> masm::FileContext::get_data() { return gen->get_data(); }
 
 bool masm::FileContext::file_includes_another_file(Node &node) {
   NodeIncDir *dir = (NodeIncDir *)node.node.get();

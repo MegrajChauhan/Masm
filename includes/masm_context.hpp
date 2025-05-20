@@ -2,11 +2,12 @@
 #define _MASM_CONTEXT_
 
 #include <filecontext.hpp>
+#include <output_gen.hpp>
 
 // This is also responsible for parsing the input CMD arguments
 namespace masm {
 
-std::string HELP_MSG =
+static std::string HELP_MSG =
     "Usage:\n"
     "masm [OPTIONS...] [ARGUMENTS...]\n"
     "Options:\n"
@@ -15,26 +16,29 @@ std::string HELP_MSG =
     "-f                      - An Input file for assembling\n"
     "-DD                     - Display disclaimer message and exit\n"
     "-I                      - Add a new include path\n"
+    "-o                      - Provide a output path along for the generated "
+    "binary\n"
     "\nMasm - An assembler for the Merry Virtual Machine\n";
 
-std::string VERSION =
+static std::string VERSION =
     "Merry Version: v0.0.0[no-rel,no-beta,no-alpha]\n"
     "TEST PHASE 0\n"; // Phase indicating the number of different test version
 
-std::string DISCLAIMER = "DISCLAIMER:\n"
-                         "Masm is an assembler for the Merry Virtual Machine "
-                         "with no intention of being used "
-                         "for building real world applications. The entire "
-                         "existence of Masm is to allow for "
-                         "testing of the Virtual Machine and its features. Any "
-                         "and all features are for the sole"
-                         " purpose of testing.\n"
-                         "With the documentation of the Virtual Machine, that "
-                         "I intend to provide, a usable assembler"
-                         " for real world application may be prepared.\n"
-                         "Masm solely exists to make sure that those useful "
-                         "assemblers have a dependable platform"
-                         " that does what it is supposed to do.\n";
+static std::string DISCLAIMER =
+    "DISCLAIMER:\n"
+    "Masm is an assembler for the Merry Virtual Machine "
+    "with no intention of being used "
+    "for building real world applications. The entire "
+    "existence of Masm is to allow for "
+    "testing of the Virtual Machine and its features. Any "
+    "and all features are for the sole"
+    " purpose of testing.\n"
+    "With the documentation of the Virtual Machine, that "
+    "I intend to provide, a usable assembler"
+    " for real world application may be prepared.\n"
+    "Masm solely exists to make sure that those useful "
+    "assemblers have a dependable platform"
+    " that does what it is supposed to do.\n";
 
 class MasmContext {
   uint64_t d_address = 0;
@@ -55,9 +59,13 @@ class MasmContext {
 
   std::vector<std::string> cmd_options;
 
+  std::unordered_set<file_t> is_already_used;
+
+  GeneratorDetails details;
+
   struct {
-    bool help, version;
-    bool disclaimer;
+    bool help = false, version = false;
+    bool disclaimer = false;
   } CMD;
 
 public:

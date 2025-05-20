@@ -2,6 +2,7 @@
 #define _GPC_ANALYZER_
 
 #include <algorithm>
+#include <analyzer_base.hpp>
 #include <array>
 #include <nodes.hpp>
 #include <string>
@@ -12,7 +13,7 @@
 #include <vector>
 
 namespace masm {
-class GPCAnalyzer {
+class GPCAnalyzer : public Analyzer {
   std::vector<Node> nodes;
   std::unordered_map<std::string, std::pair<value_t, std::string>> &consts;
   std::unordered_set<std::string> &labels;
@@ -27,15 +28,15 @@ public:
       std::unordered_set<std::string> &l, SymbolTable &s);
 
   // bool analyze();
-  void set_nodes(std::vector<Node> &&nodes);
+  void set_nodes(std::vector<Node> &&nodes) override;
 
-  std::vector<Node> get_result();
+  std::vector<Node> get_result() override;
 
-  bool first_loop();
+  bool first_loop() override;
 
-  bool first_loop_second_phase();
+  bool first_loop_second_phase() override;
 
-  bool second_loop();
+  bool second_loop() override;
 
   bool validate_defined_variables(Node &n);
 

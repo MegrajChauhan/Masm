@@ -1,7 +1,7 @@
 #include <masm_context.hpp>
 
 masm::MasmContext::MasmContext(int argc, char **argv) {
-  for (size_t i = 0; i < (size_t)argc; i++) {
+  for (size_t i = 1; i < (size_t)argc; i++) {
     cmd_options.push_back(std::string(argv[i]));
   }
 }
@@ -31,6 +31,13 @@ bool masm::MasmContext::parse_cmd_options() {
       }
       i++;
       include_paths.push_back(cmd_options[i]);
+    } else if (cmd_options[i] == "-o") {
+      if (!((i + 1) < cmd_options.size())) {
+        simple_message("Expected output path after -o but got EOF.", NULL);
+        return false;
+      }
+      i++;
+      output_file = cmd_options[i];
     } else {
       simple_message("Unknown Option: %s", cmd_options[i].c_str());
       return false;
@@ -86,16 +93,21 @@ bool masm::MasmContext::prepare_for_assembling() {
   for (auto path : input_files) {
     FileContext cont(include_paths, CONSTANTS, LABELS, symtable,
                      label_addresses, data_addresses, data, string, 0);
-
     if (!cont.file_prepare(path) || !cont.should_process_file())
       return false;
+    if (is_already_used.find(cont.get_file_type()) != is_already_used.end()) {
+      simple_message(
+          "Multiple input files of the same type cannot be provided.", NULL);
+      return false;
+    }
+    is_already_used.insert(cont.get_file_type());
     contexts.push_back(std::move(cont));
   }
   return true;
 }
 
 bool masm::MasmContext::assemble() {
-  // We will have to loop through quite a lot of times here
+  // We will have to loop through file contexts quite a lot of times here
   // First step is to do parse
   for (FileContext &c : contexts) {
     if (!c.parse_file() || !c.pre_analysis())
@@ -123,14 +135,60 @@ bool masm::MasmContext::assemble() {
 
   // Generating variables
   for (FileContext &c : contexts) {
-    if (!c.gen_file_first_step())
+    if (!c.gen_file_first_step(d_address))
       return false;
+    d_address = c.get_d_addr();
   }
 
   // Generating strings
   for (FileContext &c : contexts) {
-    if (!c.gen_file_first_step_second_phase())
+    if (!c.gen_file_first_step_second_phase(d_address))
+      return false;
+    d_address = c.get_d_addr();
   }
 
+  // For pointers
+  for (FileContext &c : contexts) {
+    if (!c.gen_file_first_step_third_phase(d_address))
+      return false;
+    d_address = c.get_d_addr();
+  }
+
+  // For Instructions
+  for (FileContext &c : contexts) {
+    if (!c.gen_file_second_step())
+      return false;
+  }
+
+  return true;
+}
+
+bool masm::MasmContext::prepare_for_emiting() {
+  details.data = data;
+  details.output_file_path = output_file;
+  details.string = string;
+
+  for (auto &cont : contexts) {
+    details.instructions.push_back(
+        std::make_pair(cont.get_file_type(), cont.get_instructions()));
+  }
+
+  auto main_proc = label_addresses.find("main");
+  if (main_proc == label_addresses.end()) {
+    simple_message(
+        "Entry PROC not found. Expected a main procedure to be defined.", NULL);
+    return false;
+  }
+
+  details.entry_inst = contexts[0].get_ENTRY_INSTRUCTION(main_proc->second);
+  return true;
+}
+
+bool masm::MasmContext::emit() {
+  Generator GENERATE(details);
+  if (!GENERATE.pre_emission() || !GENERATE.emit_header() ||
+      !GENERATE.emit_ITIT() || !GENERATE.emit_Instructions() ||
+      !GENERATE.emit_data_section() || !GENERATE.emit_string_section())
+    return false;
   return true;
 }

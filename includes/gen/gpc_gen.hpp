@@ -10,7 +10,7 @@
 
 namespace masm {
 typedef Inst64 Data64;
-class GPCGen {
+class GPCGen : public Gen {
   std::vector<Node> final_nodes; // All we will convert to instructions
   SymbolTable &symtable;         // All the data
   uint64_t st_address_data;
@@ -27,23 +27,23 @@ public:
          std::unordered_map<std::string, uint64_t> &, std::vector<uint8_t> &,
          std::vector<uint8_t> &, uint64_t);
 
-  void set_final_nodes(std::vector<Node> &&nodes);
+  void set_final_nodes(std::vector<Node> &&nodes) override;
 
-  uint64_t get_current_address_point();
+  uint64_t get_current_address_point() override;
 
-  std::vector<Inst64> get_instructions();
+  std::vector<Inst64> get_instructions() override;
 
-  std::vector<uint8_t> get_data();
+  std::vector<uint8_t> get_data() override;
 
-  bool generate();
+  Inst64 get_ENTRY_INSTRUCTION(size_t addr) override;
 
-  bool first_iteration();
+  bool first_iteration(uint64_t addr_point) override;
 
-  bool first_iteration_second_phase(uint64_t addr_point);
+  bool first_iteration_second_phase(uint64_t addr_point) override;
 
-  bool first_iteration_third_phase(uint64_t addr_point);
+  bool first_iteration_third_phase(uint64_t addr_point) override;
 
-  bool second_iteration();
+  bool second_iteration() override;
 
   void add_data(std::string value, value_t type, size_t len);
 
@@ -58,7 +58,8 @@ public:
   void instructions_with_two_regr(uint8_t opcode, uint8_t reg1, uint8_t reg2);
 
   void instructions_with_one_immediate(uint8_t opcode, Node &n, size_t len,
-                                       bool label = false, uint8_t op2 = 0);
+                                       bool label = false, uint8_t op2 = 0,
+                                       bool jmp = false);
 
   void sin_and_sout_instructions(Node &n);
 

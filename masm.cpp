@@ -1,9 +1,9 @@
-#include <filecontext.hpp>
+#include <masm_context.hpp>
 
-int main() {
-  uint64_t addr = 0;
-  std::vector<std::filesystem::path> ipaths = {"./", "./tests"};
-  masm::FileContext c(ipaths, addr);
-
-  return (c.file_process("test1.gpc.masm"));
+int main(int argc, char **argv) {
+  masm::MasmContext context(argc, argv);
+  if (!context.prepare_for_assembling() || !context.assemble() ||
+      !context.prepare_for_emiting() || !context.emit())
+    return -1;
+  return 0;
 }

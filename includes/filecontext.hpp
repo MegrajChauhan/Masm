@@ -1,8 +1,10 @@
 #ifndef _FILE_CONTEXT_
 #define _FILE_CONTEXT_
 
+#include <analyzer_base.hpp>
 #include <consts.hpp>
 #include <filesystem>
+#include <gen_base.hpp>
 #include <gpc_analyzer.hpp>
 #include <gpc_gen.hpp>
 #include <gpc_parser.hpp>
@@ -35,8 +37,8 @@ class FileContext {
 
   uint64_t d_addr;
 
-  GPCAnalyzer analyzer;
-  GPCGen gen;
+  std::unique_ptr<Analyzer> analyzer;
+  std::unique_ptr<Gen> gen;
 
 public:
   FileContext(
@@ -68,6 +70,8 @@ public:
 
   uint64_t get_d_addr();
 
+  file_t get_file_type();
+
   void set_imports(std::unordered_set<std::filesystem::path> &&f);
 
   void set_nodes(std::vector<Node> &&n);
@@ -89,13 +93,15 @@ public:
 
   bool analyze_file_second_step();
 
-  bool gen_file_first_step();
+  bool gen_file_first_step(uint64_t addr);
 
   bool gen_file_first_step_second_phase(uint64_t addr);
 
   bool gen_file_first_step_third_phase(uint64_t addr);
 
   bool gen_file_second_step();
+
+  Inst64 get_ENTRY_INSTRUCTION(size_t addr);
 
   bool file_includes_another_file(Node &node);
 
