@@ -26,24 +26,10 @@ bool masm::Generator::emit_header() {
        << i.bytes.b2 << i.bytes.b1 << i.bytes.b0;
 
   i.whole_word = details.data_section_length;
-  if ((i.whole_word % PAGE_LEN_BYTES) != 0) {
-    uint64_t diff = PAGE_LEN_BYTES - (i.whole_word % PAGE_LEN_BYTES);
-    for (uint64_t j = 0; j < diff; j++) {
-      details.data.push_back(0);
-    }
-    i.whole_word = details.data.size();
-  }
   file << i.bytes.b7 << i.bytes.b6 << i.bytes.b5 << i.bytes.b4 << i.bytes.b3
        << i.bytes.b2 << i.bytes.b1 << i.bytes.b0;
 
   i.whole_word = details.string_section_length;
-  if ((i.whole_word % PAGE_LEN_BYTES) != 0) {
-    uint64_t diff = PAGE_LEN_BYTES - (i.whole_word % PAGE_LEN_BYTES);
-    for (uint64_t j = 0; j < diff; j++) {
-      details.string.push_back(0);
-    }
-    i.whole_word = details.string.size();
-  }
   file << i.bytes.b7 << i.bytes.b6 << i.bytes.b5 << i.bytes.b4 << i.bytes.b3
        << i.bytes.b2 << i.bytes.b1 << i.bytes.b0;
 

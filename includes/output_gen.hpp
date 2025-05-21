@@ -12,7 +12,7 @@
 #define DATA_HEADER_LEN 8
 #define STRING_HEADER_LEN 8
 #define PAGE_LEN 1048576
-#define PAGE_LEN_BYTES 1048576 * 8
+#define PAGE_LEN_BYTES 1048576
 
 namespace masm {
 struct GeneratorDetails {
