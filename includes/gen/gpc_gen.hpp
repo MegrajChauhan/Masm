@@ -45,6 +45,8 @@ public:
 
   bool second_iteration() override;
 
+  void align_data(uint64_t *addr);
+
   void add_data(std::string value, value_t type, size_t len);
 
   void add_reserved_data(std::string len, value_t type, size_t l);

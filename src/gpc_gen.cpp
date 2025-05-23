@@ -27,6 +27,14 @@ masm::Inst64 masm::GPCGen::get_ENTRY_INSTRUCTION(size_t addr) {
   return i;
 }
 
+void masm::GPCGen::align_data(uint64_t *addr) {
+  if ((*addr % 8) != 0) {
+    uint64_t diff = (8 - (*addr % 8));
+    for (size_t i = 0; i < diff; i++, (*addr)++)
+      data.push_back(0);
+  }
+}
+
 bool masm::GPCGen::first_iteration(uint64_t addr_point) {
   // First iteration will generate addresses for data and labels.
   // Here we will only generate data
@@ -55,32 +63,29 @@ bool masm::GPCGen::first_iteration(uint64_t addr_point) {
 
   st_address_data = addr_point;
   uint64_t i = 8;
+
+  // Intelligent putting of variables
+  // qwords, lfloats and pointers -> dwords, floats ->(add some if it isn't
+  // 8-byte aligned)
+  // -> words -> (add some if it isn't 8-byte aligned) -> bytes, strings (can be
+  // misaligned)
+
+  // qwords, lfloats and pointers
   for (Node &n : final_nodes) {
     switch (n.type) {
+    case NODE_DW:
+    case NODE_DF:
+    case NODE_DD:
+    case NODE_DB:
+    case NODE_DS:
+    case NODE_RESB:
+    case NODE_RESW:
+    case NODE_RESD:
+    case NODE_RESF:
+      break;
     case NODE_LABEL: {
       NodeLabel *lbl = (NodeLabel *)n.node.get();
       label_addresses[lbl->name] = i;
-      break;
-    }
-    case NODE_DB: {
-      NodeDB *db = (NodeDB *)n.node.get();
-      data_addresses[db->name] = st_address_data;
-      add_data(db->value, db->type, 1);
-      st_address_data++;
-      break;
-    }
-    case NODE_DW: {
-      NodeDW *dw = (NodeDW *)n.node.get();
-      data_addresses[dw->name] = st_address_data;
-      add_data(dw->value, dw->type, 2);
-      st_address_data += 2;
-      break;
-    }
-    case NODE_DD: {
-      NodeDD *dd = (NodeDD *)n.node.get();
-      data_addresses[dd->name] = st_address_data;
-      add_data(dd->value, dd->type, 4);
-      st_address_data += 4;
       break;
     }
     case NODE_DQ: {
@@ -97,15 +102,6 @@ bool masm::GPCGen::first_iteration(uint64_t addr_point) {
       st_address_data += 8;
       break;
     }
-    case NODE_DS:
-      break;
-    case NODE_DF: {
-      NodeDF *df = (NodeDF *)n.node.get();
-      data_addresses[df->name] = st_address_data;
-      add_data(df->value, df->type, 4);
-      st_address_data += 4;
-      break;
-    }
     case NODE_DLF: {
       NodeDF *dlf = (NodeDF *)n.node.get();
       data_addresses[dlf->name] = st_address_data;
@@ -113,35 +109,11 @@ bool masm::GPCGen::first_iteration(uint64_t addr_point) {
       st_address_data += 8;
       break;
     }
-    case NODE_RESB: {
-      NodeRESB *res = (NodeRESB *)n.node.get();
-      data_addresses[res->name] = st_address_data;
-      add_reserved_data(res->value, res->type, 1);
-      break;
-    }
-    case NODE_RESW: {
-      NodeRESW *res = (NodeRESW *)n.node.get();
-      data_addresses[res->name] = st_address_data;
-      add_reserved_data(res->value, res->type, 2);
-      break;
-    }
-    case NODE_RESD: {
-      NodeRESD *res = (NodeRESD *)n.node.get();
-      data_addresses[res->name] = st_address_data;
-      add_reserved_data(res->value, res->type, 4);
-      break;
-    }
     case NODE_RESP:
     case NODE_RESQ: {
       NodeRESQ *res = (NodeRESQ *)n.node.get();
       data_addresses[res->name] = st_address_data;
       add_reserved_data(res->value, res->type, 8);
-      break;
-    }
-    case NODE_RESF: {
-      NodeRESF *res = (NodeRESF *)n.node.get();
-      data_addresses[res->name] = st_address_data;
-      add_reserved_data(res->value, res->type, 4);
       break;
     }
     case NODE_RESLF: {
@@ -154,17 +126,90 @@ bool masm::GPCGen::first_iteration(uint64_t addr_point) {
       i += n.len * 8;
     }
   }
+  // dwords, floats
+  for (Node &n : final_nodes) {
+    switch (n.type) {
+    case NODE_RESF: {
+      NodeRESF *res = (NodeRESF *)n.node.get();
+      data_addresses[res->name] = st_address_data;
+      add_reserved_data(res->value, res->type, 4);
+      break;
+    }
+    case NODE_RESD: {
+      NodeRESD *res = (NodeRESD *)n.node.get();
+      data_addresses[res->name] = st_address_data;
+      add_reserved_data(res->value, res->type, 4);
+      break;
+    }
+    case NODE_DF: {
+      NodeDF *df = (NodeDF *)n.node.get();
+      data_addresses[df->name] = st_address_data;
+      add_data(df->value, df->type, 4);
+      st_address_data += 4;
+      break;
+    }
+    case NODE_DD: {
+      NodeDD *dd = (NodeDD *)n.node.get();
+      data_addresses[dd->name] = st_address_data;
+      add_data(dd->value, dd->type, 4);
+      st_address_data += 4;
+      break;
+    }
+    default:
+      break;
+    }
+  }
+  align_data(&st_address_data);
+  // words
+  for (Node &n : final_nodes) {
+    switch (n.type) {
+    case NODE_RESW: {
+      NodeRESW *res = (NodeRESW *)n.node.get();
+      data_addresses[res->name] = st_address_data;
+      add_reserved_data(res->value, res->type, 2);
+      break;
+    }
+    case NODE_DW: {
+      NodeDW *dw = (NodeDW *)n.node.get();
+      data_addresses[dw->name] = st_address_data;
+      add_data(dw->value, dw->type, 2);
+      st_address_data += 2;
+      break;
+    }
+    default:
+      break;
+    }
+  }
+  align_data(&st_address_data);
   return true;
 }
 
 bool masm::GPCGen::first_iteration_second_phase(uint64_t addr_point) {
   st_address_data = addr_point;
   for (auto &n : final_nodes) {
-    if (n.type == NODE_DS) {
+    switch (n.type) {
+    case NODE_DS: {
       NodeDS *ds = (NodeDS *)n.node.get();
       data_addresses[ds->name] = st_address_data;
       add_data(ds->value, ds->type, 0);
       st_address_data += ds->value.length();
+      break;
+    }
+    case NODE_RESB: {
+      NodeRESB *res = (NodeRESB *)n.node.get();
+      data_addresses[res->name] = st_address_data;
+      add_reserved_data(res->value, res->type, 1);
+      break;
+    }
+    case NODE_DB: {
+      NodeDB *db = (NodeDB *)n.node.get();
+      data_addresses[db->name] = st_address_data;
+      add_data(db->value, db->type, 1);
+      st_address_data++;
+      break;
+    }
+    default:
+      break;
     }
   }
   return true;
@@ -1441,9 +1486,13 @@ void masm::GPCGen::add_data(std::string value, value_t type, size_t len) {
   default:
     return;
   }
-  for (size_t i = 0; i < len; i++) {
-    data.push_back(val.whole_word & 255);
-    val.whole_word >>= 8;
+  if (len == 1) {
+    string.push_back(val.bytes.b7);
+  } else {
+    for (size_t i = 0; i < len; i++) {
+      data.push_back(val.whole_word & 255);
+      val.whole_word >>= 8;
+    }
   }
 }
 
@@ -1469,8 +1518,14 @@ void masm::GPCGen::add_reserved_data(std::string len, value_t type, size_t l) {
   default:
     return;
   }
-  for (size_t i = 0; i < l * val; i++) {
-    data.push_back(0);
+  if (l != 1) {
+    for (size_t i = 0; i < l * val; i++) {
+      data.push_back(0);
+    }
+  } else {
+    for (size_t i = 0; i < val; i++) {
+      string.push_back(0);
+    }
   }
   st_address_data += l * val;
 }
